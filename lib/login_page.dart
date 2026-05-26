@@ -32,12 +32,15 @@ class LoginPage extends StatelessWidget {
                   border: OutlineInputBorder()
                 ),
                 onChanged: (String value) {
-
                 },
-              )
+                validator: (value){
+                  return value!.isEmpty ? 'Pleas Enter your username': null;
+                },
+              ),
 
-            ],),),
-          
+            ],
+          ),
+          ),
         ],
       ),
     );
