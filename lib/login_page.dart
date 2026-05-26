@@ -52,7 +52,6 @@ class LoginPage extends StatelessWidget {
                   return value!.isEmpty ? 'Pleas Enter your Password': null;
                 },
               ),
-
             ],
           ),
           ),
