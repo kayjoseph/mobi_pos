@@ -6,7 +6,40 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Login Page"),
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text("Login",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange
+            ),
+          ),
+          Form(child:
+          Column(
+            children: [
+              TextFormField(
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: "Username",
+                  hintText: 'Enter Username',
+                  prefixIcon: Icon(Icons.person),
+                  border: OutlineInputBorder()
+                ),
+                onChanged: (String value) {
 
+                },
+              )
+
+            ],),),
+          
+        ],
+      ),
     );
   }
 }
