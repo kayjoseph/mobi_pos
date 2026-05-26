@@ -20,40 +20,53 @@ class LoginPage extends StatelessWidget {
               color: Colors.orange
             ),
           ),
-          Form(child:
-          Column(
-            children: [
-              TextFormField(
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: "Username",
-                  hintText: 'Enter Username',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder()
-                ),
-                onChanged: (String value) {
-                },
-                validator: (value){
-                  return value!.isEmpty ? 'Please Enter your username': null;
-                },
-              ),
-              SizedBox(height: 20,),
-              TextFormField(
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                    labelText: "Password",
-                    hintText: 'Enter Password',
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 30),
+            child: Form(child:
+            Column(
+              children: [
+                TextFormField(
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: "Username",
+                    hintText: 'Enter Username',
                     prefixIcon: Icon(Icons.person),
                     border: OutlineInputBorder()
+                  ),
+                  onChanged: (String value) {
+                  },
+                  validator: (value){
+                    return value!.isEmpty ? 'Please Enter your username': null;
+                  },
                 ),
-                onChanged: (String value) {
-                },
-                validator: (value){
-                  return value!.isEmpty ? 'Pleas Enter your Password': null;
-                },
-              ),
-            ],
-          ),
+                SizedBox(height: 20,),
+                TextFormField(
+                  keyboardType: TextInputType.visiblePassword,
+                  decoration: InputDecoration(
+                      labelText: "Password",
+                      hintText: 'Enter Password',
+                      prefixIcon: Icon(Icons.password),
+                      border: OutlineInputBorder()
+                  ),
+                  onChanged: (String value) {
+                  },
+                  validator: (value){
+                    return value!.isEmpty ? 'Please Enter your Password': null;
+                  },
+                ),
+
+                SizedBox(height: 30,),
+
+                ElevatedButton(
+                    onPressed: () {},
+                    child: Text("Login",
+                      style: TextStyle(color: Colors.black,
+                      ),
+                    ),
+                ),
+              ],
+            ),
+            ),
           ),
         ],
       ),
