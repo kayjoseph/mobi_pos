@@ -34,7 +34,22 @@ class LoginPage extends StatelessWidget {
                 onChanged: (String value) {
                 },
                 validator: (value){
-                  return value!.isEmpty ? 'Pleas Enter your username': null;
+                  return value!.isEmpty ? 'Please Enter your username': null;
+                },
+              ),
+              SizedBox(height: 20,),
+              TextFormField(
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                    labelText: "Password",
+                    hintText: 'Enter Password',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder()
+                ),
+                onChanged: (String value) {
+                },
+                validator: (value){
+                  return value!.isEmpty ? 'Pleas Enter your Password': null;
                 },
               ),
 
