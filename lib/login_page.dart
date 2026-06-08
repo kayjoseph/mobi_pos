@@ -160,14 +160,21 @@ class _LoginPageState extends State<LoginPage> {
                           strokeWidth: 2,
                         ),
                       )
-                          : const Text(
-                        'Sign In',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
+                          : const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Sign In',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
                         ),
-                      ),
+                        SizedBox(width: 8),
+                        Icon(Icons.login),
+                      ],
+                    ),
                     ),
                   ),
                 ],
