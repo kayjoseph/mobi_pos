@@ -139,7 +139,7 @@ class _LoginPageState extends State<LoginPage> {
 
                   // Login button
                   SizedBox(
-                    width: double.infinity,
+                    width: 300,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _login,
                       style: ElevatedButton.styleFrom(
@@ -161,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       )
                           : const Text(
-                        'Login',
+                        'Sign In',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
