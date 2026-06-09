@@ -34,14 +34,16 @@ class _LoginPageState extends State<LoginPage> {
 
       // 2. Compare the entered password with the stored password
       if (result['password'] != _passwordController.text.trim()) {
-        throw Exception('Incorrect password');
+        throw Exception('You have entered Incorrect password');
       }
 
       // 3. Login successful — navigate to home
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const Home()),
+          MaterialPageRoute(
+            builder: (context) => Home(username: _usernameController.text.trim()),
+          ),
         );
       }
     } on PostgrestException catch (e) {
