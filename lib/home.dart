@@ -11,10 +11,12 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  String _currentPage = 'Dashboard';
+
   @override
   void initState() {
     super.initState();
-    // Show welcome snackbar after page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -26,8 +28,7 @@ class _HomeState extends State<Home> {
           duration: const Duration(seconds: 3),
         ),
       );
-    },
-    );
+    });
   }
 
   void _logout() {
@@ -75,29 +76,44 @@ class _HomeState extends State<Home> {
       }
     });
   }
+
+  // Drawer menu items
+  final List<Map<String, dynamic>> _menuItems = [
+    {'title': 'Dashboard', 'icon': Icons.dashboard},
+    {'title': 'Products', 'icon': Icons.inventory_2},
+    {'title': 'Sales', 'icon': Icons.point_of_sale},
+    {'title': 'Purchases', 'icon': Icons.shopping_cart},
+    {'title': 'Expenses', 'icon': Icons.receipt_long},
+    {'title': 'Customers', 'icon': Icons.people},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.green,
-        automaticallyImplyLeading: false, // hide back button
-        title: const Text(
-          'Dashboard',
-          style: TextStyle(
+        // Hamburger icon to open drawer
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: Colors.white),
+          onPressed: () => _scaffoldKey.currentState!.openDrawer(),
+        ),
+        title: Text(
+          _currentPage,
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
-          // Profile avatar icon
           GestureDetector(
             onTap: () => _showProfileMenu(context),
             child: CircleAvatar(
               backgroundColor: Colors.orange,
               radius: 18,
               child: Text(
-                widget.username[0].toUpperCase(), // first letter of username
+                widget.username[0].toUpperCase(),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -106,8 +122,6 @@ class _HomeState extends State<Home> {
             ),
           ),
           const SizedBox(width: 10),
-
-          // Logout button
           TextButton.icon(
             onPressed: _logout,
             icon: const Icon(Icons.logout, color: Colors.white),
@@ -128,10 +142,106 @@ class _HomeState extends State<Home> {
           const SizedBox(width: 5),
         ],
       ),
+
+      // ---- DRAWER ----
+      drawer: Drawer(
+        child: Column(
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              color: Colors.green,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // MobiPos title
+                  const Text(
+                    'MobiPos',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // User avatar
+                  CircleAvatar(
+                    backgroundColor: Colors.orange,
+                    radius: 30,
+                    child: Text(
+                      widget.username[0].toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Username
+                  Text(
+                    widget.username,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Menu items
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: _menuItems.map((item) {
+                  final bool isSelected = _currentPage == item['title'];
+                  return ListTile(
+                    leading: Icon(
+                      item['icon'],
+                      color: isSelected ? Colors.green : Colors.grey[700],
+                    ),
+                    title: Text(
+                      item['title'],
+                      style: TextStyle(
+                        color: isSelected ? Colors.green : Colors.black,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    tileColor: isSelected ? Colors.green[50] : null,
+                    onTap: () {
+                      setState(() => _currentPage = item['title']);
+                      Navigator.pop(context); // close drawer
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+
+            // Logout at bottom of drawer
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text(
+                'Logout',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+              onTap: _logout,
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+
       body: Center(
         child: Text(
-          'Welcome to the Dashboard, ${widget.username}!',
-          style: const TextStyle(fontSize: 18),
+          '$_currentPage Module',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
       ),
     );
