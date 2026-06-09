@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobi_pos/home.dart';
 import 'package:mobi_pos/login_page.dart';
+import 'package:mobi_pos/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const LoginPage(),
+      home: const SplashScreen(),
     );
   }
 }
