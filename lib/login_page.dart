@@ -110,8 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) =>
-                    value!.isEmpty ? 'Please enter your username' : null,
+                    validator: (value) => value!.isEmpty ? 'Please enter your username' : null,
                   ),
                   const SizedBox(height: 20),
 
@@ -134,8 +133,7 @@ class _LoginPageState extends State<LoginPage> {
                                 () => _obscurePassword = !_obscurePassword),
                       ),
                     ),
-                    validator: (value) =>
-                    value!.isEmpty ? 'Please enter your password' : null,
+                    validator: (value) => value!.isEmpty ? 'Please enter your password' : null,
                   ),
                   const SizedBox(height: 30),
 
