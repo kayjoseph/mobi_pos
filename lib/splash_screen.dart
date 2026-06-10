@@ -29,10 +29,24 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: Image.asset(
-          'images/mobipos_logo2.png',
-          width: 250,
-          height: 250,
+        child: Column(
+          children: [
+            Image.asset(
+              'images/mobipos_logo2.png',
+              width: 250,
+              height: 250,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Simple • Reliable • Scalable",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                fontSize: 20,
+                color: Colors.black,
+              ),
+            ),
+          ],
         ),
       ),
     );
