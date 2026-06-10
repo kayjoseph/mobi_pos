@@ -478,9 +478,8 @@ class _ItemsListTabState extends State<_ItemsListTab> {
     try {
       final data = await supabase
           .from('products')
-          .select('id, name, barcode, buying_price, selling_price, opening_stock, categories(name)')
-          .order('name');
-
+          .select('id, name, barcode, buying_price, selling_price, opening_stock, categories(id, name)')
+          .order('id');
       setState(() {
         _products = List<Map<String, dynamic>>.from(data);
         _isLoading = false;
@@ -492,14 +491,211 @@ class _ItemsListTabState extends State<_ItemsListTab> {
       );
     }
   }
+
   List<Map<String, dynamic>> get _filteredProducts {
     if (_searchQuery.isEmpty) return _products;
-    return _products.where((p) {
-      return p['name']
-          .toString()
-          .toLowerCase()
-          .contains(_searchQuery.toLowerCase());
-    }).toList();
+    return _products
+        .where((p) => p['name']
+        .toString()
+        .toLowerCase()
+        .contains(_searchQuery.toLowerCase()))
+        .toList();
+  }
+
+  // Format id as 0001, 0002 etc based on position
+  String _formatId(int index) {
+    return (index + 1).toString().padLeft(4, '0');
+  }
+
+  Future<void> _showEditDialog(Map<String, dynamic> product) async {
+    final nameController =
+    TextEditingController(text: product['name']);
+    final barcodeController =
+    TextEditingController(text: product['barcode'] ?? '');
+    final buyingPriceController =
+    TextEditingController(text: product['buying_price']?.toString() ?? '0');
+    final sellingPriceController =
+    TextEditingController(text: product['selling_price']?.toString() ?? '0');
+    final formKey = GlobalKey<FormState>();
+
+    // Fetch categories for dropdown
+    List<Map<String, dynamic>> categories = [];
+    int? selectedCategoryId = product['categories'] != null
+        ? product['categories']['id'] as int?
+        : null;
+
+    try {
+      final catData = await supabase
+          .from('categories')
+          .select('id, name')
+          .order('name');
+      categories = List<Map<String, dynamic>>.from(catData);
+    } catch (_) {}
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.edit, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('Edit Item'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Item name
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Item Name *',
+                      prefixIcon: Icon(Icons.inventory_2),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) =>
+                    value!.isEmpty ? 'Please enter item name' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Barcode
+                  TextFormField(
+                    controller: barcodeController,
+                    decoration: const InputDecoration(
+                      labelText: 'Barcode (optional)',
+                      prefixIcon: Icon(Icons.qr_code),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Category dropdown
+                  DropdownButtonFormField<int>(
+                    value: selectedCategoryId,
+                    decoration: const InputDecoration(
+                      labelText: 'Category *',
+                      prefixIcon: Icon(Icons.category),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: categories.map((cat) {
+                      return DropdownMenuItem<int>(
+                        value: cat['id'] as int,
+                        child: Text(cat['name']),
+                      );
+                    }).toList(),
+                    onChanged: (value) =>
+                        setDialogState(() => selectedCategoryId = value),
+                    validator: (value) =>
+                    value == null ? 'Please select a category' : null,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Buying price
+                  TextFormField(
+                    controller: buyingPriceController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Buying Price',
+                      prefixText: 'KES ',
+                      prefixIcon:
+                      Icon(Icons.arrow_downward, color: Colors.red),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Required';
+                      if (double.tryParse(value) == null) {
+                        return 'Enter a valid number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Selling price
+                  TextFormField(
+                    controller: sellingPriceController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Selling Price *',
+                      prefixText: 'KES ',
+                      prefixIcon:
+                      Icon(Icons.arrow_upward, color: Colors.green),
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) return 'Required';
+                      if (double.tryParse(value) == null) {
+                        return 'Enter a valid number';
+                      }
+                      final selling = double.parse(value);
+                      final buying =
+                          double.tryParse(buyingPriceController.text) ?? 0;
+                      if (selling < buying) {
+                        return 'Must be ≥ buying price';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                Navigator.pop(context);
+                try {
+                  await supabase.from('products').update({
+                    'name': nameController.text.trim(),
+                    'barcode': barcodeController.text.trim().isEmpty
+                        ? null
+                        : barcodeController.text.trim(),
+                    'category_id': selectedCategoryId,
+                    'buying_price':
+                    double.tryParse(buyingPriceController.text) ?? 0,
+                    'selling_price':
+                    double.tryParse(sellingPriceController.text) ?? 0,
+                  }).eq('id', product['id']);
+
+                  _fetchProducts();
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Item updated successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('Error: $e'),
+                          backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.save, color: Colors.white),
+              label: const Text('Update',
+                  style: TextStyle(color: Colors.white)),
+              style:
+              ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -508,7 +704,7 @@ class _ItemsListTabState extends State<_ItemsListTab> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Search + count row
+          // Search + refresh + count
           Row(
             children: [
               Expanded(
@@ -518,15 +714,17 @@ class _ItemsListTabState extends State<_ItemsListTab> {
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    contentPadding:
+                    const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  onChanged: (value) => setState(() => _searchQuery = value),
+                  onChanged: (value) =>
+                      setState(() => _searchQuery = value),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.green[50],
                   borderRadius: BorderRadius.circular(10),
@@ -539,7 +737,6 @@ class _ItemsListTabState extends State<_ItemsListTab> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Refresh button
               IconButton(
                 onPressed: _fetchProducts,
                 icon: const Icon(Icons.refresh, color: Colors.green),
@@ -547,9 +744,66 @@ class _ItemsListTabState extends State<_ItemsListTab> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // List
+          // Table header
+          Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.orange,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                SizedBox(
+                  width: 50,
+                  child: Text(
+                    'ID',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'Item Name',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'Category',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SizedBox(
+                  width: 50,
+                  child: Text(
+                    'Stock',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    'Edit',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // Table rows
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -557,48 +811,96 @@ class _ItemsListTabState extends State<_ItemsListTab> {
                 ? const Center(
                 child: Text('No items found',
                     style: TextStyle(color: Colors.grey)))
-                : ListView.separated(
+                : ListView.builder(
               itemCount: _filteredProducts.length,
-              separatorBuilder: (_, __) => const Divider(),
               itemBuilder: (context, index) {
                 final product = _filteredProducts[index];
                 final category = product['categories'];
-                final quantity = product['opening_stock'] ?? 0;
+                final qty =
+                (product['opening_stock'] ?? 0).toInt();
+                final isEven = index % 2 == 0;
 
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.green[100],
-                    child: Text(
-                      product['name'][0].toUpperCase(),
-                      style: const TextStyle(
-                          color: Colors.green, fontWeight: FontWeight.bold),
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isEven
+                        ? Colors.grey[50]
+                        : Colors.white,
+                    border: Border(
+                      bottom: BorderSide(
+                          color: Colors.grey[200]!, width: 1),
                     ),
                   ),
-                  title: Text(
-                    product['name'],
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    '${category != null ? category['name'] : 'No category'}'
-                        '${product['barcode'] != null ? ' • ${product['barcode']}' : ''}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Row(
                     children: [
-                      Text(
-                        'KES ${product['selling_price']}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                      // ID
+                      SizedBox(
+                        width: 50,
+                        child: Text(
+                          _formatId(index),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                      Text(
-                        'Stock: $quantity',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: quantity <= 10 ? Colors.red : Colors.grey,
+                      // Item name
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          product['name'],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Category
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          category != null
+                              ? category['name']
+                              : '-',
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Stock badge
+                      SizedBox(
+                        width: 50,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: qty <= 10
+                                ? Colors.red
+                                : Colors.green,
+                            borderRadius:
+                            BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$qty',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      // Edit button
+                      SizedBox(
+                        width: 48,
+                        child: IconButton(
+                          icon: const Icon(Icons.edit,
+                              color: Colors.blue, size: 20),
+                          onPressed: () =>
+                              _showEditDialog(product),
+                          tooltip: 'Edit item',
                         ),
                       ),
                     ],
@@ -613,6 +915,7 @@ class _ItemsListTabState extends State<_ItemsListTab> {
   }
 }
 
+// ---- CATEGORIES TAB ----
 class _CategoriesTab extends StatefulWidget {
   const _CategoriesTab();
 
@@ -940,6 +1243,7 @@ class _CategoriesTabState extends State<_CategoriesTab> {
   }
 }
 
+// ---- STOCK MANAGER TAB ----
 class _StockManagerTab extends StatefulWidget {
   const _StockManagerTab();
 
@@ -964,8 +1268,8 @@ class _StockManagerTabState extends State<_StockManagerTab> {
     try {
       final data = await supabase
           .from('products')
-          .select('id, name, buying_price, selling_price, opening_stock, categories(name)')
-          .order('name');
+          .select('id, name, buying_price, selling_price, opening_stock, categories(id, name)')
+          .order('id');
       setState(() {
         _products = List<Map<String, dynamic>>.from(data);
         _isLoading = false;
@@ -988,14 +1292,18 @@ class _StockManagerTabState extends State<_StockManagerTab> {
         .toList();
   }
 
+  String _formatId(int index) {
+    return (index + 1).toString().padLeft(4, '0');
+  }
+
   Future<void> _showAdjustDialog(Map<String, dynamic> product) async {
     int currentStock = (product['opening_stock'] ?? 0).toInt();
     final stockController =
     TextEditingController(text: currentStock.toString());
-    final buyingPriceController =
-    TextEditingController(text: product['buying_price']?.toString() ?? '0');
-    final sellingPriceController =
-    TextEditingController(text: product['selling_price']?.toString() ?? '0');
+    final buyingPriceController = TextEditingController(
+        text: product['buying_price']?.toString() ?? '0');
+    final sellingPriceController = TextEditingController(
+        text: product['selling_price']?.toString() ?? '0');
     final formKey = GlobalKey<FormState>();
 
     await showDialog(
@@ -1023,7 +1331,7 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Category
+                  // Category chip
                   if (product['categories'] != null)
                     Chip(
                       label: Text(product['categories']['name']),
@@ -1034,10 +1342,8 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                   const SizedBox(height: 16),
 
                   // Stock adjuster
-                  const Text(
-                    'Stock Quantity',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Stock Quantity',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1091,7 +1397,8 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                         onPressed: () {
                           setDialogState(() {
                             currentStock++;
-                            stockController.text = currentStock.toString();
+                            stockController.text =
+                                currentStock.toString();
                           });
                         },
                       ),
@@ -1102,10 +1409,8 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                   const SizedBox(height: 12),
 
                   // Buying price
-                  const Text(
-                    'Buying Price (KES)',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Buying Price (KES)',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: buyingPriceController,
@@ -1117,9 +1422,7 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
+                      if (value == null || value.isEmpty) return 'Required';
                       if (double.tryParse(value) == null) {
                         return 'Enter a valid number';
                       }
@@ -1129,10 +1432,8 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                   const SizedBox(height: 12),
 
                   // Selling price
-                  const Text(
-                    'Selling Price (KES)',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text('Selling Price (KES)',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: sellingPriceController,
@@ -1144,18 +1445,14 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                       border: OutlineInputBorder(),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
+                      if (value == null || value.isEmpty) return 'Required';
                       if (double.tryParse(value) == null) {
                         return 'Enter a valid number';
                       }
                       final selling = double.parse(value);
                       final buying =
                           double.tryParse(buyingPriceController.text) ?? 0;
-                      if (selling < buying) {
-                        return 'Must be ≥ buying price';
-                      }
+                      if (selling < buying) return 'Must be ≥ buying price';
                       return null;
                     },
                   ),
@@ -1239,6 +1536,21 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                 ),
               ),
               const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Text(
+                  '${_filteredProducts.length} items',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+              ),
+              const SizedBox(width: 8),
               IconButton(
                 onPressed: _fetchProducts,
                 icon: const Icon(Icons.refresh, color: Colors.green),
@@ -1253,44 +1565,77 @@ class _StockManagerTabState extends State<_StockManagerTab> {
             padding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.green,
+              color: Colors.orange,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Text('Item / Category',
+                SizedBox(
+                  width: 46,
+                  child: Text('ID',
                       style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold)),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text('Item Name',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text('Buy / Sell',
+                  child: Text('Category',
                       style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold)),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
                 ),
-                Expanded(
-                  flex: 1,
+                SizedBox(
+                  width: 44,
                   child: Text('Qty',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold)),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
                 ),
                 SizedBox(
-                  width: 48,
-                  child: Text('',
-                      textAlign: TextAlign.center),
+                  width: 60,
+                  child: Text('Cost',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                SizedBox(
+                  width: 60,
+                  child: Text('Sell',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                SizedBox(
+                  width: 44,
+                  child: Text('Action',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
 
-          // List
+          // Table rows
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -1298,18 +1643,18 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                 ? const Center(
                 child: Text('No items found',
                     style: TextStyle(color: Colors.grey)))
-                : ListView.separated(
+                : ListView.builder(
               itemCount: _filteredProducts.length,
-              separatorBuilder: (_, __) =>
-              const Divider(height: 1),
               itemBuilder: (context, index) {
                 final product = _filteredProducts[index];
                 final category = product['categories'];
                 final qty =
                 (product['opening_stock'] ?? 0).toInt();
-                final buyPrice = product['buying_price'] ?? 0;
+                final buyPrice =
+                    product['buying_price'] ?? 0;
                 final sellPrice =
                     product['selling_price'] ?? 0;
+                final isEven = index % 2 == 0;
 
                 return Container(
                   padding: const EdgeInsets.symmetric(
@@ -1317,88 +1662,103 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                   decoration: BoxDecoration(
                     color: qty <= 10
                         ? Colors.red[50]
+                        : isEven
+                        ? Colors.grey[50]
                         : Colors.white,
-                    borderRadius: BorderRadius.circular(6),
+                    border: Border(
+                      bottom: BorderSide(
+                          color: Colors.grey[200]!, width: 1),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      // Name + category
+                      // ID
+                      SizedBox(
+                        width: 46,
+                        child: Text(
+                          _formatId(index),
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      // Item name
                       Expanded(
                         flex: 3,
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product['name'],
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              category != null
-                                  ? category['name']
-                                  : 'No category',
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey),
-                            ),
-                          ],
+                        child: Text(
+                          product['name'],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Buy / Sell
+                      // Category
                       Expanded(
                         flex: 2,
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'KES $buyPrice',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.red),
-                            ),
-                            Text(
-                              'KES $sellPrice',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green,
-                                  fontWeight:
-                                  FontWeight.bold),
-                            ),
-                          ],
+                        child: Text(
+                          category != null
+                              ? category['name']
+                              : '-',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Qty badge
-                      Expanded(
-                        flex: 1,
+                      // Stock badge
+                      SizedBox(
+                        width: 44,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 4),
+                              horizontal: 4, vertical: 3),
                           decoration: BoxDecoration(
                             color: qty <= 10
                                 ? Colors.red
                                 : Colors.green,
                             borderRadius:
-                            BorderRadius.circular(20),
+                            BorderRadius.circular(12),
                           ),
                           child: Text(
                             '$qty',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
                           ),
+                        ),
+                      ),
+                      // Cost
+                      SizedBox(
+                        width: 60,
+                        child: Text(
+                          '$buyPrice',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.red),
+                        ),
+                      ),
+                      // Sell
+                      SizedBox(
+                        width: 60,
+                        child: Text(
+                          '$sellPrice',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       // Adjust button
                       SizedBox(
-                        width: 48,
+                        width: 44,
                         child: IconButton(
                           icon: const Icon(Icons.tune,
-                              color: Colors.blue),
+                              color: Colors.blue, size: 20),
                           tooltip: 'Adjust',
                           onPressed: () =>
                               _showAdjustDialog(product),
@@ -1425,8 +1785,7 @@ class _StockManagerTabState extends State<_StockManagerTab> {
               ),
               const SizedBox(width: 6),
               const Text('Low stock (≤ 10 units)',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
         ],
