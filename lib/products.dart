@@ -66,35 +66,36 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
           'Products',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          CircleAvatar(
-            backgroundColor: Colors.orange,
-            radius: 18,
-            child: Text(
-              widget.username[0].toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          TextButton.icon(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          const SizedBox(width: 5),
-        ],
+        // actions: [
+        //   CircleAvatar(
+        //     backgroundColor: Colors.orange,
+        //     radius: 18,
+        //     child: Text(
+        //       widget.username[0].toUpperCase(),
+        //       style: const TextStyle(
+        //         color: Colors.white,
+        //         fontWeight: FontWeight.bold,
+        //       ),
+        //     ),
+        //   ),
+        //   const SizedBox(width: 10),
+        //   TextButton.icon(
+        //     onPressed: _logout,
+        //     icon: const Icon(Icons.logout, color: Colors.white),
+        //     label: const Text(
+        //       'Logout',
+        //       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        //     ),
+        //     style: TextButton.styleFrom(
+        //       backgroundColor: Colors.red,
+        //       shape: RoundedRectangleBorder(
+        //         borderRadius: BorderRadius.circular(8),
+        //       ),
+        //     ),
+        //   ),
+        //   const SizedBox(width: 5),
+        // ],
+
         // Tabs just below appbar
         bottom: TabBar(
           controller: _tabController,
@@ -502,11 +503,6 @@ class _ItemsListTabState extends State<_ItemsListTab> {
         .toList();
   }
 
-  // Format id as 0001, 0002 etc based on position
-  String _formatId(int index) {
-    return (index + 1).toString().padLeft(4, '0');
-  }
-
   Future<void> _showEditDialog(Map<String, dynamic> product) async {
     final nameController =
     TextEditingController(text: product['name']);
@@ -837,8 +833,9 @@ class _ItemsListTabState extends State<_ItemsListTab> {
                       // ID
                       SizedBox(
                         width: 50,
+                        // With this:
                         child: Text(
-                          _formatId(index),
+                          product['id'].toString().padLeft(4, '0'),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -937,12 +934,10 @@ class _CategoriesTabState extends State<_CategoriesTab> {
   Future<void> _fetchCategories() async {
     setState(() => _isLoading = true);
     try {
-      // Fetch categories with product count
       final data = await supabase
           .from('categories')
           .select('id, name, description, products(count)')
-          .order('name');
-
+          .order('id');
       setState(() {
         _categories = List<Map<String, dynamic>>.from(data);
         _isLoading = false;
@@ -956,18 +951,24 @@ class _CategoriesTabState extends State<_CategoriesTab> {
   }
 
   Future<void> _showCategoryDialog({Map<String, dynamic>? category}) async {
-    // If category is passed, we are editing. Otherwise adding new.
-    final nameController = TextEditingController(
-        text: category != null ? category['name'] : '');
-    final descController = TextEditingController(
-        text: category != null ? category['description'] ?? '' : '');
+    final nameController =
+    TextEditingController(text: category?['name'] ?? '');
+    final descController =
+    TextEditingController(text: category?['description'] ?? '');
     final formKey = GlobalKey<FormState>();
     final isEditing = category != null;
 
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEditing ? 'Edit Category' : 'Add New Category'),
+        title: Row(
+          children: [
+            Icon(isEditing ? Icons.edit : Icons.add_circle,
+                color: isEditing ? Colors.blue : Colors.green),
+            const SizedBox(width: 8),
+            Text(isEditing ? 'Edit Category' : 'Add New Category'),
+          ],
+        ),
         content: Form(
           key: formKey,
           child: Column(
@@ -977,8 +978,8 @@ class _CategoriesTabState extends State<_CategoriesTab> {
                 controller: nameController,
                 decoration: const InputDecoration(
                   labelText: 'Category Name *',
-                  border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.category),
+                  border: OutlineInputBorder(),
                 ),
                 validator: (value) =>
                 value!.isEmpty ? 'Please enter a category name' : null,
@@ -988,8 +989,8 @@ class _CategoriesTabState extends State<_CategoriesTab> {
                 controller: descController,
                 decoration: const InputDecoration(
                   labelText: 'Description (optional)',
-                  border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.notes),
+                  border: OutlineInputBorder(),
                 ),
                 maxLines: 2,
               ),
@@ -1001,11 +1002,10 @@ class _CategoriesTabState extends State<_CategoriesTab> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
               Navigator.pop(context);
-
               try {
                 if (isEditing) {
                   await supabase.from('categories').update({
@@ -1019,26 +1019,34 @@ class _CategoriesTabState extends State<_CategoriesTab> {
                   });
                 }
                 _fetchCategories();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(isEditing
-                        ? 'Category updated successfully'
-                        : 'Category added successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(isEditing
+                          ? 'Category updated successfully'
+                          : 'Category added successfully'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red),
+                  );
+                }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: Text(
+            icon: Icon(isEditing ? Icons.save : Icons.add,
+                color: Colors.white),
+            label: Text(
               isEditing ? 'Update' : 'Add',
               style: const TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isEditing ? Colors.blue : Colors.green,
             ),
           ),
         ],
@@ -1047,11 +1055,9 @@ class _CategoriesTabState extends State<_CategoriesTab> {
   }
 
   Future<void> _deleteCategory(Map<String, dynamic> category) async {
-    // Check if category has products
     final productCount = category['products'][0]['count'] as int;
 
     if (productCount > 0) {
-      // Block deletion
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -1063,10 +1069,11 @@ class _CategoriesTabState extends State<_CategoriesTab> {
             ],
           ),
           content: Text(
-            'The category "${category['name']}" has $productCount product(s) assigned to it.\n\n'
-                'Please reassign or delete those products first before deleting this category.',
+            '"${category['name']}" has $productCount product(s) assigned.\n\n'
+                'Reassign or delete those products first.',
           ),
           actions: [
+            // Only one button needed here — just close
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -1078,23 +1085,64 @@ class _CategoriesTabState extends State<_CategoriesTab> {
       return;
     }
 
-    // Confirm deletion if empty
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Category'),
-        content: Text(
-            'Are you sure you want to delete "${category['name']}"?'),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_forever, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete Category'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete:',
+              style: TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '"${category['name']}"?',
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.red, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'This action cannot be undone.',
+                      style: TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.white),
+            label: const Text('Yes, Delete',
+                style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child:
-            const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1107,16 +1155,21 @@ class _CategoriesTabState extends State<_CategoriesTab> {
             .delete()
             .eq('id', category['id']);
         _fetchCategories();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Category deleted'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Category deleted'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
       }
     }
   }
@@ -1127,14 +1180,13 @@ class _CategoriesTabState extends State<_CategoriesTab> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Summary + Add button row
+          // Top row — count + add button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Total categories badge
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.green[50],
                   borderRadius: BorderRadius.circular(10),
@@ -1145,91 +1197,238 @@ class _CategoriesTabState extends State<_CategoriesTab> {
                     const Icon(Icons.category, color: Colors.green),
                     const SizedBox(width: 8),
                     Text(
-                      'Total: ${_categories.length} categories',
+                      '${_categories.length} categories',
                       style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green),
                     ),
                   ],
                 ),
               ),
-              // Add category button
-              ElevatedButton.icon(
-                onPressed: () => _showCategoryDialog(),
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text('Add Category',
-                    style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: _fetchCategories,
+                    icon: const Icon(Icons.refresh, color: Colors.lightBlue),
+                    tooltip: 'Refresh',
                   ),
-                ),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCategoryDialog(),
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: const Text('Add Category',
+                        style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.lightBlue,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Categories list
+          // Table header
+          Container(
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.orange,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                SizedBox(
+                  width: 46,
+                  child: Text('ID',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text('Category Name',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text('Description',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                SizedBox(
+                  width: 50,
+                  child: Text('Items',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                SizedBox(
+                  width: 80,
+                  child: Text('Actions',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // Table rows
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _categories.isEmpty
-                ? const Center(
-              child: Text('No categories yet. Add one!',
-                  style: TextStyle(color: Colors.grey)),
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.category_outlined,
+                      size: 60, color: Colors.grey[300]),
+                  const SizedBox(height: 12),
+                  const Text('No categories yet',
+                      style: TextStyle(color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _showCategoryDialog(),
+                    icon: const Icon(Icons.add,
+                        color: Colors.white),
+                    label: const Text('Add First Category',
+                        style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green),
+                  ),
+                ],
+              ),
             )
-                : ListView.separated(
+                : ListView.builder(
               itemCount: _categories.length,
-              separatorBuilder: (_, __) => const Divider(),
               itemBuilder: (context, index) {
                 final cat = _categories[index];
                 final productCount =
                 cat['products'][0]['count'] as int;
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.green[100],
-                    child: const Icon(Icons.category,
-                        color: Colors.green),
+                final isEven = index % 2 == 0;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isEven
+                        ? Colors.grey[50]
+                        : Colors.white,
+                    border: Border(
+                      bottom: BorderSide(
+                          color: Colors.grey[200]!, width: 1),
+                    ),
                   ),
-                  title: Text(
-                    cat['name'],
-                    style:
-                    const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    cat['description'] != null &&
-                        cat['description'].isNotEmpty
-                        ? cat['description']
-                        : 'No description',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  // Product count chip
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     children: [
-                      Chip(
-                        label: Text(
-                          '$productCount item${productCount == 1 ? '' : 's'}',
-                          style: const TextStyle(fontSize: 12),
+                      // ID
+                      SizedBox(
+                        width: 46,
+                        child: Text(
+                            cat['id'].toString().padLeft(4, '0'),
+                          style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500),
                         ),
-                        backgroundColor: productCount > 0
-                            ? Colors.blue[50]
-                            : Colors.grey[200],
                       ),
-                      // Edit button
-                      IconButton(
-                        icon: const Icon(Icons.edit,
-                            color: Colors.blue),
-                        onPressed: () =>
-                            _showCategoryDialog(category: cat),
+                      // Category name
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          cat['name'],
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      // Delete button
-                      IconButton(
-                        icon: const Icon(Icons.delete,
-                            color: Colors.red),
-                        onPressed: () => _deleteCategory(cat),
+                      // Description
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          cat['description'] != null &&
+                              cat['description']
+                                  .toString()
+                                  .isNotEmpty
+                              ? cat['description']
+                              : '—',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Product count badge
+                      SizedBox(
+                        width: 50,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: productCount > 0
+                                ? Colors.blue
+                                : Colors.grey[300],
+                            borderRadius:
+                            BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$productCount',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: productCount > 0
+                                    ? Colors.white
+                                    : Colors.grey[600],
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      // Actions — edit + delete
+                      SizedBox(
+                        width: 80,
+                        child: Row(
+                          mainAxisAlignment:
+                          MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit,
+                                  color: Colors.blue, size: 18),
+                              tooltip: 'Edit',
+                              padding: EdgeInsets.zero,
+                              constraints:
+                              const BoxConstraints(),
+                              onPressed: () =>
+                                  _showCategoryDialog(
+                                      category: cat),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: const Icon(Icons.delete,
+                                  color: Colors.red, size: 18),
+                              tooltip: 'Delete',
+                              padding: EdgeInsets.zero,
+                              constraints:
+                              const BoxConstraints(),
+                              onPressed: () =>
+                                  _deleteCategory(cat),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -1290,10 +1489,6 @@ class _StockManagerTabState extends State<_StockManagerTab> {
         .toLowerCase()
         .contains(_searchQuery.toLowerCase()))
         .toList();
-  }
-
-  String _formatId(int index) {
-    return (index + 1).toString().padLeft(4, '0');
   }
 
   Future<void> _showAdjustDialog(Map<String, dynamic> product) async {
@@ -1675,12 +1870,14 @@ class _StockManagerTabState extends State<_StockManagerTab> {
                       // ID
                       SizedBox(
                         width: 46,
+                        // With this:
                         child: Text(
-                          _formatId(index),
+                          product['id'].toString().padLeft(4, '0'),
                           style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500),
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                       // Item name
