@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobi_pos/login_page.dart';
+import 'package:mobi_pos/products.dart';
 
 class Home extends StatefulWidget {
   final String username;
@@ -215,8 +216,14 @@ class _HomeState extends State<Home> {
                     ),
                     tileColor: isSelected ? Colors.green[50] : null,
                     onTap: () {
-                      setState(() => _currentPage = item['title']);
-                      Navigator.pop(context); // close drawer
+                      Navigator.pop(context);
+                      if (item['title'] == 'Products') {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => Products(username: widget.username),
+                        ),
+                        );
+                      } else {
+                        setState(() => _currentPage = item['title']);
+                      }
                     },
                   );
                 }).toList(),
@@ -237,7 +244,6 @@ class _HomeState extends State<Home> {
           ],
         ),
       ),
-
       body: Center(
         child: Text(
           '$_currentPage Module',
