@@ -274,9 +274,9 @@ class _SalesState extends State<Sales> with SingleTickerProviderStateMixin {
       ),
       body: TabBarView(
         controller: _tabController!,
-        children: const [
-          _POSTab(),
-          _SalesListTab(),
+        children: [
+          _POSTab(username: widget.username),
+          _SalesListTab(username: widget.username),
         ],
       ),
     );
@@ -285,7 +285,8 @@ class _SalesState extends State<Sales> with SingleTickerProviderStateMixin {
 
 // ---- POS TAB ----
 class _POSTab extends StatefulWidget {
-  const _POSTab();
+  final String username;
+  const _POSTab({required this.username});
 
   @override
   State<_POSTab> createState() => _POSTabState();
@@ -344,6 +345,36 @@ class _POSTabState extends State<_POSTab> {
   }
 
   void _addToCart(Map<String, dynamic> product) {
+    final availableStock = (product['opening_stock'] ?? 0).toInt();
+    final inCart = _cartQty(product['id']);
+
+    if (availableStock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product['name']} is out of stock'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    if (inCart >= availableStock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Only $availableStock unit(s) of ${product['name']} available'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       final index = _cart.indexWhere((c) => c['id'] == product['id']);
       if (index >= 0) {
@@ -358,7 +389,6 @@ class _POSTabState extends State<_POSTab> {
       }
     });
   }
-
   void _removeFromCart(int productId) {
     setState(() {
       final index = _cart.indexWhere((c) => c['id'] == productId);
@@ -603,17 +633,17 @@ class _POSTabState extends State<_POSTab> {
         'amount_paid': amountPaid,
         'change_amount': amountPaid - _total,
         'payment_method': paymentMethod,
-        'transaction_code':
-        transactionCode.isEmpty ? null : transactionCode,
-        'items': _cart
-            .map((item) => {
+        'transaction_code': transactionCode.isEmpty ? null : transactionCode,
+        'created_by': widget.username,
+        'status': amountPaid >= _total ? 'paid' : 'unpaid',
+        'balance': amountPaid >= _total ? 0 : _total - amountPaid,
+        'items': _cart.map((item) => {
           'product_id': item['id'],
           'name': item['name'],
           'qty': item['qty'],
           'price': item['price'],
           'subtotal': item['price'] * item['qty'],
-        })
-            .toList(),
+        }).toList(),
       });
 
       // 2. Deduct stock for each item in cart
@@ -1065,15 +1095,32 @@ class _POSTabState extends State<_POSTab> {
                                                     .bold),
                                           ),
                                         ),
+                                        // Find the + button in cart ListView and replace onTap:
                                         GestureDetector(
-                                          onTap: () =>
-                                              _addToCart(item),
-                                          child: const Icon(
-                                              Icons
-                                                  .add_circle_outline,
-                                              size: 20,
-                                              color:
-                                              Colors.green),
+                                          onTap: () {
+                                            final product = _products.firstWhere(
+                                                  (p) => p['id'] == item['id'],
+                                              orElse: () => {},
+                                            );
+                                            final availableStock =
+                                            (product['opening_stock'] ?? 0).toInt();
+                                            if (item['qty'] >= availableStock) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                      'Only $availableStock unit(s) available'),
+                                                  backgroundColor: Colors.orange,
+                                                  behavior: SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(10)),
+                                                ),
+                                              );
+                                              return;
+                                            }
+                                            _addToCart(item);
+                                          },
+                                          child: const Icon(Icons.add_circle_outline,
+                                              size: 20, color: Colors.green),
                                         ),
                                       ],
                                     ),
@@ -1167,14 +1214,414 @@ class _POSTabState extends State<_POSTab> {
   }
 }
 // ---- SALES LIST TAB ----
-class _SalesListTab extends StatelessWidget {
-  const _SalesListTab();
+class _SalesListTab extends StatefulWidget {
+  final String username;
+  const _SalesListTab({required this.username});
+
+  @override
+  State<_SalesListTab> createState() => _SalesListTabState();
+}
+
+class _SalesListTabState extends State<_SalesListTab> {
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> _sales = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSales();
+  }
+
+  Future<void> _fetchSales() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await supabase
+          .from('sales')
+          .select()
+          .order('created_at', ascending: false);
+      setState(() {
+        _sales = List<Map<String, dynamic>>.from(data);
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    final date = DateTime.parse(dateStr).toLocal();
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year} '
+        '${date.hour.toString().padLeft(2, '0')}:'
+        '${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  void _showSaleDetails(Map<String, dynamic> sale) {
+    final items = sale['items'] as List<dynamic>;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'INV-${sale['id'].toString().padLeft(5, '0')}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: sale['status'] == 'paid'
+                    ? Colors.green
+                    : Colors.red,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                sale['status'].toString().toUpperCase(),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Sale info
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    _infoRow('Date',
+                        _formatDate(sale['created_at'])),
+                    _infoRow('Created By',
+                        sale['created_by'] ?? '-'),
+                    _infoRow('Payment',
+                        sale['payment_method'] ?? '-'),
+                    if (sale['transaction_code'] != null &&
+                        sale['transaction_code'].isNotEmpty)
+                      _infoRow('Transaction Code',
+                          sale['transaction_code']),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Items
+              const Text('Items',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              ...items.map((item) => Padding(
+                padding:
+                const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${item['name']} x${item['qty']}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                    Text(
+                      'KES ${item['subtotal']}',
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              )),
+              const Divider(),
+
+              // Totals
+              _infoRow('Total',
+                  'KES ${sale['total_amount']}',
+                  bold: true),
+              _infoRow('Amount Paid',
+                  'KES ${sale['amount_paid']}'),
+              if ((sale['change_amount'] ?? 0) > 0)
+                _infoRow('Change',
+                    'KES ${sale['change_amount']}'),
+              if ((sale['balance'] ?? 0) > 0)
+                _infoRow(
+                  'Balance Due',
+                  'KES ${sale['balance']}',
+                  valueColor: Colors.red,
+                  bold: true,
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style:
+            ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Close',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value,
+      {bool bold = false, Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                  color: Colors.grey, fontSize: 13)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight:
+              bold ? FontWeight.bold : FontWeight.w500,
+              color: valueColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Sales List — coming soon',
-          style: TextStyle(fontSize: 18, color: Colors.grey)),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Header row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Text(
+                  '${_sales.length} sales',
+                  style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+              IconButton(
+                onPressed: _fetchSales,
+                icon: const Icon(Icons.refresh, color: Colors.green),
+                tooltip: 'Refresh',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Table header
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.green,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                SizedBox(
+                  width: 80,
+                  child: Text('INV No.',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text('Total',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text('Created By',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                SizedBox(
+                  width: 55,
+                  child: Text('Status',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                SizedBox(
+                  width: 55,
+                  child: Text('Balance',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                SizedBox(width: 36),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+
+          // Sales rows
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _sales.isEmpty
+                ? const Center(
+                child: Text('No sales yet',
+                    style: TextStyle(color: Colors.grey)))
+                : ListView.builder(
+              itemCount: _sales.length,
+              itemBuilder: (context, index) {
+                final sale = _sales[index];
+                final isEven = index % 2 == 0;
+                final isPaid = sale['status'] == 'paid';
+                final balance = sale['balance'] ?? 0;
+
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isEven
+                        ? Colors.grey[50]
+                        : Colors.white,
+                    border: Border(
+                      bottom: BorderSide(
+                          color: Colors.grey[200]!),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // INV No
+                      SizedBox(
+                        width: 80,
+                        child: Text(
+                          'INV-${sale['id'].toString().padLeft(5, '0')}',
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      // Total
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'KES ${sale['total_amount']}',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green),
+                        ),
+                      ),
+                      // Created by
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          sale['created_by'] ?? '-',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      // Status badge
+                      SizedBox(
+                        width: 55,
+                        child: Container(
+                          padding:
+                          const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isPaid
+                                ? Colors.green
+                                : Colors.red,
+                            borderRadius:
+                            BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            isPaid ? 'Paid' : 'Unpaid',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight:
+                                FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      // Balance
+                      SizedBox(
+                        width: 55,
+                        child: Text(
+                          balance > 0
+                              ? 'KES $balance'
+                              : '-',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: balance > 0
+                                  ? Colors.red
+                                  : Colors.grey),
+                        ),
+                      ),
+                      // View details button
+                      SizedBox(
+                        width: 36,
+                        child: IconButton(
+                          icon: const Icon(
+                              Icons.visibility,
+                              color: Colors.blue,
+                              size: 18),
+                          padding: EdgeInsets.zero,
+                          onPressed: () =>
+                              _showSaleDetails(sale),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
