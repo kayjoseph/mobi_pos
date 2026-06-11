@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobi_pos/login_page.dart';
 import 'package:mobi_pos/products.dart';
+import 'package:mobi_pos/sales.dart';
 
 class Home extends StatefulWidget {
   final String username;
@@ -16,6 +17,7 @@ class _HomeState extends State<Home> {
   String _currentPage = 'Dashboard';
 
   @override
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -24,14 +26,19 @@ class _HomeState extends State<Home> {
           content: Text(
             'Welcome, ${widget.username}!',
             style: const TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     });
   }
-
   void _logout() {
     Navigator.pushReplacement(
       context,
@@ -82,12 +89,22 @@ class _HomeState extends State<Home> {
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Dashboard', 'icon': Icons.dashboard},
     {'title': 'Products', 'icon': Icons.inventory_2},
-    {'title': 'Sales', 'icon': Icons.point_of_sale},
+    {
+      'title': 'Sales',
+      'icon': Icons.point_of_sale,
+      'children': [
+        {'title': 'Sales', 'icon': Icons.receipt},
+        {'title': 'Sales Return', 'icon': Icons.assignment_return},
+        {'title': 'Cancelled Sales', 'icon': Icons.cancel},
+      ]
+    },
     {'title': 'Purchases', 'icon': Icons.shopping_cart},
     {'title': 'Expenses', 'icon': Icons.receipt_long},
     {'title': 'Customers', 'icon': Icons.people},
   ];
 
+// Add this to your state variables:
+  bool _salesExpanded = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -200,6 +217,74 @@ class _HomeState extends State<Home> {
                 padding: EdgeInsets.zero,
                 children: _menuItems.map((item) {
                   final bool isSelected = _currentPage == item['title'];
+
+                  // Sales item with expandable children
+                  if (item['children'] != null) {
+                    return Column(
+                      children: [
+                        // Sales parent item
+                        ListTile(
+                          leading: Icon(
+                            item['icon'],
+                            color: _salesExpanded ? Colors.green : Colors.grey[700],
+                          ),
+                          title: Text(
+                            item['title'],
+                            style: TextStyle(
+                              color: _salesExpanded ? Colors.green : Colors.black,
+                              fontWeight: _salesExpanded
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          trailing: Icon(
+                            _salesExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: _salesExpanded ? Colors.green : Colors.grey,
+                          ),
+                          onTap: () {
+                            setState(() => _salesExpanded = !_salesExpanded);
+                          },
+                        ),
+                        // Dropdown children
+                        if (_salesExpanded)
+                          ...item['children'].map<Widget>((child) {
+                            return ListTile(
+                              contentPadding:
+                              const EdgeInsets.only(left: 40),
+                              leading: Icon(
+                                child['icon'],
+                                color: Colors.grey[600],
+                                size: 20,
+                              ),
+                              title: Text(
+                                child['title'],
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context); // close drawer
+                                if (child['title'] == 'Sales') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          Sales(username: widget.username),
+                                    ),
+                                  );
+                                } else if (child['title'] == 'Sales Return') {
+                                  // Navigate to Sales Return later
+                                } else if (child['title'] == 'Cancelled Sales') {
+                                  // Navigate to Cancelled Sales later
+                                }
+                              },
+                            );
+                          }).toList(),
+                      ],
+                    );
+                  }
+
+                  // Regular menu items
                   return ListTile(
                     leading: Icon(
                       item['icon'],
@@ -209,17 +294,20 @@ class _HomeState extends State<Home> {
                       item['title'],
                       style: TextStyle(
                         color: isSelected ? Colors.green : Colors.black,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                     tileColor: isSelected ? Colors.green[50] : null,
                     onTap: () {
                       Navigator.pop(context);
                       if (item['title'] == 'Products') {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => Products(username: widget.username),
-                        ),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                Products(username: widget.username),
+                          ),
                         );
                       } else {
                         setState(() => _currentPage = item['title']);
