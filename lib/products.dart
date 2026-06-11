@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobi_pos/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:mobi_pos/sales.dart';
 class Products extends StatefulWidget {
   final String username;
 
@@ -34,19 +34,39 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
+// Replace the _menuItems list:
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Dashboard', 'icon': Icons.dashboard},
     {'title': 'Products', 'icon': Icons.inventory_2},
-    {'title': 'Sales', 'icon': Icons.point_of_sale},
+    {
+      'title': 'Sales',
+      'icon': Icons.point_of_sale,
+      'children': [
+        {'title': 'Sales', 'icon': Icons.receipt},
+        {'title': 'Sales Return', 'icon': Icons.assignment_return},
+        {'title': 'Cancelled Sales', 'icon': Icons.cancel},
+      ]
+    },
     {'title': 'Purchases', 'icon': Icons.shopping_cart},
     {'title': 'Expenses', 'icon': Icons.receipt_long},
     {'title': 'Customers', 'icon': Icons.people},
   ];
 
+// Add this to your state variables:
+  bool _salesExpanded = false;
   void _navigateTo(String title) {
-    Navigator.pop(context);
+    Navigator.pop(context); // close drawer
     if (title == 'Dashboard') {
-      Navigator.pop(context);
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } else if (title == 'Products') {
+      // already here, do nothing
+    } else if (title == 'Sales') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Sales(username: widget.username),
+        ),
+      );
     }
   }
 
@@ -161,6 +181,74 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
                 padding: EdgeInsets.zero,
                 children: _menuItems.map((item) {
                   final bool isSelected = item['title'] == 'Products';
+
+                  // Sales item with expandable children
+                  if (item['children'] != null) {
+                    return Column(
+                      children: [
+                        // Sales parent item
+                        ListTile(
+                          leading: Icon(
+                            item['icon'],
+                            color: _salesExpanded ? Colors.green : Colors.grey[700],
+                          ),
+                          title: Text(
+                            item['title'],
+                            style: TextStyle(
+                              color: _salesExpanded ? Colors.green : Colors.black,
+                              fontWeight: _salesExpanded
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          trailing: Icon(
+                            _salesExpanded
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            color: _salesExpanded ? Colors.green : Colors.grey,
+                          ),
+                          onTap: () {
+                            setState(() => _salesExpanded = !_salesExpanded);
+                          },
+                        ),
+                        // Dropdown children
+                        if (_salesExpanded)
+                          ...item['children'].map<Widget>((child) {
+                            return ListTile(
+                              contentPadding:
+                              const EdgeInsets.only(left: 40),
+                              leading: Icon(
+                                child['icon'],
+                                color: Colors.grey[600],
+                                size: 20,
+                              ),
+                              title: Text(
+                                child['title'],
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              onTap: () {
+                                Navigator.pop(context); // close drawer
+                                if (child['title'] == 'Sales') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          Sales(username: widget.username),
+                                    ),
+                                  );
+                                } else if (child['title'] == 'Sales Return') {
+                                  // Navigate to Sales Return later
+                                } else if (child['title'] == 'Cancelled Sales') {
+                                  // Navigate to Cancelled Sales later
+                                }
+                              },
+                            );
+                          }).toList(),
+                      ],
+                    );
+                  }
+
+                  // Regular menu items
                   return ListTile(
                     leading: Icon(
                       item['icon'],
@@ -175,7 +263,20 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
                       ),
                     ),
                     tileColor: isSelected ? Colors.green[50] : null,
-                    onTap: () => _navigateTo(item['title']),
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (item['title'] == 'Products') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                Products(username: widget.username),
+                          ),
+                        );
+                      } else {
+                        final bool isSelected = item['title'] == 'Products';
+                      }
+                    },
                   );
                 }).toList(),
               ),
