@@ -537,7 +537,7 @@ class _POSTabState extends State<_POSTab> {
                 ),
                 const SizedBox(height: 12),
 
-                // Transaction code
+                // Sales Note
                 const Text('Sales Note',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
@@ -833,13 +833,13 @@ class _POSTabState extends State<_POSTab> {
                     child: Text('No items found',
                         style: TextStyle(color: Colors.grey)))
                     : GridView.builder(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(6),
                   gridDelegate:
                   const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.85,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
+                    crossAxisCount: 4,
+                    childAspectRatio: 1.1,
+                    crossAxisSpacing: 6,
+                    mainAxisSpacing: 6,
                   ),
                   itemCount: _filteredProducts.length,
                   itemBuilder: (context, index) {
@@ -873,73 +873,57 @@ class _POSTabState extends State<_POSTab> {
                           ],
                         ),
                         child: Column(
-                          mainAxisAlignment:
-                          MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             // Item initial avatar
                             CircleAvatar(
-                              backgroundColor:
-                              Colors.green[100],
-                              radius: 22,
+                              backgroundColor: Colors.green[100],
+                              radius: 16,
                               child: Text(
-                                product['name'][0]
-                                    .toUpperCase(),
+                                product['name'][0],
                                 style: const TextStyle(
                                     color: Colors.green,
-                                    fontWeight:
-                                    FontWeight.bold,
-                                    fontSize: 18),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            // Item name
-                            Padding(
-                              padding: const EdgeInsets
-                                  .symmetric(
-                                  horizontal: 4),
-                              child: Text(
-                                product['name'],
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow:
-                                TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight:
-                                    FontWeight.w600),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13),
                               ),
                             ),
                             const SizedBox(height: 4),
+                            // Item name
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                product['name'],
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
                             // Price
                             Text(
                               'KES ${product['selling_price']}',
                               style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   color: Colors.green,
-                                  fontWeight:
-                                  FontWeight.bold),
+                                  fontWeight: FontWeight.bold),
                             ),
-                            // Cart qty badge
+                            // Cart badge
                             if (inCart > 0)
                               Container(
-                                margin: const EdgeInsets
-                                    .only(top: 4),
-                                padding:
-                                const EdgeInsets
-                                    .symmetric(
-                                    horizontal: 8,
-                                    vertical: 2),
+                                margin: const EdgeInsets.only(top: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
                                 decoration: BoxDecoration(
                                   color: Colors.green,
-                                  borderRadius:
-                                  BorderRadius.circular(
-                                      10),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  'x$inCart in cart',
+                                  'x$inCart',
                                   style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10),
+                                      color: Colors.white, fontSize: 9),
                                 ),
                               ),
                           ],
