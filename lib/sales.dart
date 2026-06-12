@@ -361,19 +361,7 @@ class _POSTabState extends State<_POSTab> {
       return;
     }
 
-    if (inCart >= availableStock) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              'Only $availableStock unit(s) of ${product['name']} available'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      return;
-    }
+    if (inCart >= availableStock) return; // silently block, no snackbar
 
     setState(() {
       final index = _cart.indexWhere((c) => c['id'] == product['id']);
@@ -389,6 +377,7 @@ class _POSTabState extends State<_POSTab> {
       }
     });
   }
+
   void _removeFromCart(int productId) {
     setState(() {
       final index = _cart.indexWhere((c) => c['id'] == productId);
@@ -1019,126 +1008,159 @@ class _POSTabState extends State<_POSTab> {
                         ),
                       )
                           : ListView.builder(
-                        itemCount: _cart.length,
                         itemBuilder: (context, index) {
-                          final item = _cart[index];
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                    color: Colors.grey[100]!),
-                              ),
+                        final item = _cart[index];
+                        final product = _products.firstWhere(
+                              (p) => p['id'] == item['id'],
+                          orElse: () => {},
+                        );
+                        final availableStock = (product['opening_stock'] ?? 0).toInt();
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colors.grey[100]!),
                             ),
-                            child: Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment
-                                      .spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item['name'],
-                                        style: const TextStyle(
-                                            fontWeight:
-                                            FontWeight.w600,
-                                            fontSize: 13),
-                                        overflow: TextOverflow
-                                            .ellipsis,
-                                      ),
-                                    ),
-                                    // Delete from cart
-                                    GestureDetector(
-                                      onTap: () =>
-                                          _deleteFromCart(
-                                              item['id']),
-                                      child: const Icon(
-                                          Icons.close,
-                                          size: 16,
-                                          color: Colors.red),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment
-                                      .spaceBetween,
-                                  children: [
-                                    // Qty controls
-                                    Row(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () =>
-                                              _removeFromCart(
-                                                  item['id']),
-                                          child: const Icon(
-                                              Icons
-                                                  .remove_circle_outline,
-                                              size: 20,
-                                              color:
-                                              Colors.red),
-                                        ),
-                                        Padding(
-                                          padding:
-                                          const EdgeInsets
-                                              .symmetric(
-                                              horizontal: 8),
-                                          child: Text(
-                                            '${item['qty']}',
-                                            style: const TextStyle(
-                                                fontWeight:
-                                                FontWeight
-                                                    .bold),
-                                          ),
-                                        ),
-                                        // Find the + button in cart ListView and replace onTap:
-                                        GestureDetector(
-                                          onTap: () {
-                                            final product = _products.firstWhere(
-                                                  (p) => p['id'] == item['id'],
-                                              orElse: () => {},
-                                            );
-                                            final availableStock =
-                                            (product['opening_stock'] ?? 0).toInt();
-                                            if (item['qty'] >= availableStock) {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                      'Only $availableStock unit(s) available'),
-                                                  backgroundColor: Colors.orange,
-                                                  behavior: SnackBarBehavior.floating,
-                                                  shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(10)),
-                                                ),
-                                              );
-                                              return;
-                                            }
-                                            _addToCart(item);
-                                          },
-                                          child: const Icon(Icons.add_circle_outline,
-                                              size: 20, color: Colors.green),
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      'KES ${(item['price'] * item['qty']).toStringAsFixed(2)}',
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item['name'],
                                       style: const TextStyle(
-                                          fontWeight:
-                                          FontWeight.bold,
-                                          color: Colors.green,
+                                          fontWeight: FontWeight.w600,
                                           fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                                  ),
+                                  // Delete from cart
+                                  GestureDetector(
+                                    onTap: () => _deleteFromCart(item['id']),
+                                    child: const Icon(Icons.close,
+                                        size: 16, color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // Qty controls with type input
+                                  Row(
+                                    children: [
+                                      // Decrease button
+                                      GestureDetector(
+                                        onTap: () =>
+                                            _removeFromCart(item['id']),
+                                        child: const Icon(
+                                            Icons.remove_circle_outline,
+                                            size: 20,
+                                            color: Colors.red),
+                                      ),
+
+                                      SizedBox(
+                                        width: 40,
+                                        child: TextField(
+                                          controller: TextEditingController(
+                                              text: item['qty'].toString())
+                                            ..selection =
+                                            TextSelection.collapsed(
+                                                offset: item['qty']
+                                                    .toString()
+                                                    .length),
+                                          keyboardType:
+                                          TextInputType.number,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.bold),
+                                          decoration: const InputDecoration(
+                                            isDense: true,
+                                            border: OutlineInputBorder(),
+                                            contentPadding:
+                                            EdgeInsets.symmetric(
+                                                vertical: 4,
+                                                horizontal: 4),
+                                          ),
+                                          onSubmitted: (value) {
+                                            int typed =
+                                                int.tryParse(value) ?? 1;
+                                            if (typed > availableStock) {
+                                              typed = availableStock;
+                                            }
+                                            if (typed < 1) typed = 1;
+                                            setState(() {
+                                              final i = _cart.indexWhere(
+                                                      (c) =>
+                                                  c['id'] == item['id']);
+                                              if (i >= 0) {
+                                                _cart[i]['qty'] = typed;
+                                              }
+                                            });
+                                          },
+                                          onChanged: (value) {
+                                            int typed =
+                                                int.tryParse(value) ?? 1;
+                                            if (typed > availableStock) {
+                                              typed = availableStock;
+                                              setState(() {
+                                                final i = _cart.indexWhere(
+                                                        (c) =>
+                                                    c['id'] ==
+                                                        item['id']);
+                                                if (i >= 0) {
+                                                  _cart[i]['qty'] = typed;
+                                                }
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      // Increase button
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (item['qty'] >= availableStock) {
+                                            return; // silently block
+                                          }
+                                          _addToCart(item);
+                                        },
+                                        child: const Icon(
+                                            Icons.add_circle_outline,
+                                            size: 20,
+                                            color: Colors.green),
+                                      ),
+                                    ],
+                                  ),
+                                  // Subtotal
+                                  Text(
+                                    'KES ${(item['price'] * item['qty']).toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green,
+                                        fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                              // Stock indicator
+                              Text(
+                                'Available: $availableStock',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: availableStock <= 5
+                                        ? Colors.red
+                                        : Colors.grey),
+                              ),
+                            ],
+                          ),
+                        );
+                      },),
                     ),
 
                     // Total + Pay button
@@ -1350,7 +1372,6 @@ class _SalesListTabState extends State<_SalesListTab> {
               )),
               const Divider(),
 
-              // Totals
               _infoRow('Total',
                   'KES ${sale['total_amount']}',
                   bold: true),
