@@ -1065,62 +1065,66 @@ class _POSTabState extends State<_POSTab> {
                                             color: Colors.red),
                                       ),
 
-                                      SizedBox(
-                                        width: 40,
-                                        child: TextField(
-                                          controller: TextEditingController(
-                                              text: item['qty'].toString())
-                                            ..selection =
-                                            TextSelection.collapsed(
-                                                offset: item['qty']
-                                                    .toString()
-                                                    .length),
-                                          keyboardType:
-                                          TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.bold),
-                                          decoration: const InputDecoration(
-                                            isDense: true,
-                                            border: OutlineInputBorder(),
-                                            contentPadding:
-                                            EdgeInsets.symmetric(
-                                                vertical: 4,
-                                                horizontal: 4),
+                                      // WITH this:
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final controller = TextEditingController(
+                                              text: item['qty'].toString());
+                                          await showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: Text('Qty — ${item['name']}',
+                                                  style: const TextStyle(fontSize: 14)),
+                                              content: TextField(
+                                                controller: controller,
+                                                keyboardType: TextInputType.number,
+                                                autofocus: true,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                    fontSize: 22, fontWeight: FontWeight.bold),
+                                                decoration: const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () {
+                                                    int typed =
+                                                        int.tryParse(controller.text) ?? 1;
+                                                    if (typed > availableStock) typed = availableStock;
+                                                    if (typed < 1) typed = 1;
+                                                    setState(() {
+                                                      final i = _cart.indexWhere(
+                                                              (c) => c['id'] == item['id']);
+                                                      if (i >= 0) _cart[i]['qty'] = typed;
+                                                    });
+                                                    Navigator.pop(context);
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                      backgroundColor: Colors.green),
+                                                  child: const Text('OK',
+                                                      style: TextStyle(color: Colors.white)),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: Colors.grey[300]!),
+                                            borderRadius: BorderRadius.circular(6),
                                           ),
-                                          onSubmitted: (value) {
-                                            int typed =
-                                                int.tryParse(value) ?? 1;
-                                            if (typed > availableStock) {
-                                              typed = availableStock;
-                                            }
-                                            if (typed < 1) typed = 1;
-                                            setState(() {
-                                              final i = _cart.indexWhere(
-                                                      (c) =>
-                                                  c['id'] == item['id']);
-                                              if (i >= 0) {
-                                                _cart[i]['qty'] = typed;
-                                              }
-                                            });
-                                          },
-                                          onChanged: (value) {
-                                            int typed =
-                                                int.tryParse(value) ?? 1;
-                                            if (typed > availableStock) {
-                                              typed = availableStock;
-                                              setState(() {
-                                                final i = _cart.indexWhere(
-                                                        (c) =>
-                                                    c['id'] ==
-                                                        item['id']);
-                                                if (i >= 0) {
-                                                  _cart[i]['qty'] = typed;
-                                                }
-                                              });
-                                            }
-                                          },
+                                          child: Text(
+                                            '${item['qty']}',
+                                            style: const TextStyle(
+                                                fontSize: 13, fontWeight: FontWeight.bold),
+                                          ),
                                         ),
                                       ),
                                       // Increase button
