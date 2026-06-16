@@ -1021,7 +1021,6 @@ class _POSTabState extends State<_POSTab> {
                           final availableStock = productList.isNotEmpty
                               ? (productList.first['opening_stock'] ?? 0).toInt()
                               : 0;
-
                           return Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
