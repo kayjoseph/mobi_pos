@@ -1243,7 +1243,7 @@ class _POSTabState extends State<_POSTab> {
                                       fontWeight:
                                       FontWeight.bold)),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
+                                backgroundColor: Colors.orange,
                                 padding:
                                 const EdgeInsets.symmetric(
                                     vertical: 12),
