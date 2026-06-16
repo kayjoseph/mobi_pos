@@ -1008,163 +1008,192 @@ class _POSTabState extends State<_POSTab> {
                         ),
                       )
                           : ListView.builder(
+                        itemCount: _cart.length,
+                        physics: const AlwaysScrollableScrollPhysics(),
                         itemBuilder: (context, index) {
-                        final item = _cart[index];
-                        final product = _products.firstWhere(
-                              (p) => p['id'] == item['id'],
-                          orElse: () => {},
-                        );
-                        final availableStock = (product['opening_stock'] ?? 0).toInt();
+                          if (index >= _cart.length) return const SizedBox();
+                          final item = Map<String, dynamic>.from(_cart[index]);
 
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey[100]!),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      item['name'],
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 13),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  // Delete from cart
-                                  GestureDetector(
-                                    onTap: () => _deleteFromCart(item['id']),
-                                    child: const Icon(Icons.close,
-                                        size: 16, color: Colors.red),
-                                  ),
-                                ],
+                          final productList = _products.where(
+                                  (p) => p['id'] == item['id']
+                          ).toList();
+
+                          final availableStock = productList.isNotEmpty
+                              ? (productList.first['opening_stock'] ?? 0).toInt()
+                              : 0;
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(color: Colors.grey[100]!),
                               ),
-                              Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                                children: [
-                                  // Qty controls with type input
-                                  Row(
-                                    children: [
-                                      // Decrease button
-                                      GestureDetector(
-                                        onTap: () =>
-                                            _removeFromCart(item['id']),
-                                        child: const Icon(
-                                            Icons.remove_circle_outline,
-                                            size: 20,
-                                            color: Colors.red),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item['name'],
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-
-                                      // WITH this:
-                                      GestureDetector(
-                                        onTap: () async {
-                                          final controller = TextEditingController(
-                                              text: item['qty'].toString());
-                                          await showDialog(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              title: Text('Qty — ${item['name']}',
-                                                  style: const TextStyle(fontSize: 14)),
-                                              content: TextField(
-                                                controller: controller,
-                                                keyboardType: TextInputType.number,
-                                                autofocus: true,
-                                                textAlign: TextAlign.center,
-                                                style: const TextStyle(
-                                                    fontSize: 22, fontWeight: FontWeight.bold),
-                                                decoration: const InputDecoration(
-                                                  border: OutlineInputBorder(),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () => _deleteFromCart(item['id']),
+                                      child: const Icon(Icons.close,
+                                          size: 16, color: Colors.red),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () =>
+                                              _removeFromCart(item['id']),
+                                          child: const Icon(
+                                              Icons.remove_circle_outline,
+                                              size: 20,
+                                              color: Colors.red),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () async {
+                                            final controller =
+                                            TextEditingController(
+                                                text:
+                                                item['qty'].toString());
+                                            await showDialog(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                title: Text(
+                                                    'Qty — ${item['name']}',
+                                                    style: const TextStyle(
+                                                        fontSize: 14)),
+                                                content: TextField(
+                                                  controller: controller,
+                                                  keyboardType:
+                                                  TextInputType.number,
+                                                  autofocus: true,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                      fontSize: 22,
+                                                      fontWeight:
+                                                      FontWeight.bold),
+                                                  decoration:
+                                                  const InputDecoration(
+                                                    border:
+                                                    OutlineInputBorder(),
+                                                  ),
                                                 ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                    child:
+                                                    const Text('Cancel'),
+                                                  ),
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      int typed = int.tryParse(
+                                                          controller
+                                                              .text) ??
+                                                          1;
+                                                      if (typed >
+                                                          availableStock) {
+                                                        typed = availableStock;
+                                                      }
+                                                      if (typed < 1) typed = 1;
+                                                      setState(() {
+                                                        final i =
+                                                        _cart.indexWhere(
+                                                                (c) =>
+                                                            c['id'] ==
+                                                                item[
+                                                                'id']);
+                                                        if (i >= 0) {
+                                                          _cart[i]['qty'] =
+                                                              typed;
+                                                        }
+                                                      });
+                                                      Navigator.pop(context);
+                                                    },
+                                                    style:
+                                                    ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                        Colors.green),
+                                                    child: const Text('OK',
+                                                        style: TextStyle(
+                                                            color:
+                                                            Colors.white)),
+                                                  ),
+                                                ],
                                               ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  child: const Text('Cancel'),
-                                                ),
-                                                ElevatedButton(
-                                                  onPressed: () {
-                                                    int typed =
-                                                        int.tryParse(controller.text) ?? 1;
-                                                    if (typed > availableStock) typed = availableStock;
-                                                    if (typed < 1) typed = 1;
-                                                    setState(() {
-                                                      final i = _cart.indexWhere(
-                                                              (c) => c['id'] == item['id']);
-                                                      if (i >= 0) _cart[i]['qty'] = typed;
-                                                    });
-                                                    Navigator.pop(context);
-                                                  },
-                                                  style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Colors.green),
-                                                  child: const Text('OK',
-                                                      style: TextStyle(color: Colors.white)),
-                                                ),
-                                              ],
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                  color: Colors.grey[300]!),
+                                              borderRadius:
+                                              BorderRadius.circular(6),
                                             ),
-                                          );
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.grey[300]!),
-                                            borderRadius: BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            '${item['qty']}',
-                                            style: const TextStyle(
-                                                fontSize: 13, fontWeight: FontWeight.bold),
+                                            child: Text(
+                                              '${item['qty']}',
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      // Increase button
-                                      GestureDetector(
-                                        onTap: () {
-                                          if (item['qty'] >= availableStock) {
-                                            return; // silently block
-                                          }
-                                          _addToCart(item);
-                                        },
-                                        child: const Icon(
-                                            Icons.add_circle_outline,
-                                            size: 20,
-                                            color: Colors.green),
-                                      ),
-                                    ],
-                                  ),
-                                  // Subtotal
-                                  Text(
-                                    'KES ${(item['price'] * item['qty']).toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green,
-                                        fontSize: 13),
-                                  ),
-                                ],
-                              ),
-                              // Stock indicator
-                              Text(
-                                'Available: $availableStock',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: availableStock <= 5
-                                        ? Colors.red
-                                        : Colors.grey),
-                              ),
-                            ],
-                          ),
-                        );
-                      },),
+                                        GestureDetector(
+                                          onTap: () {
+                                            if (item['qty'] >= availableStock) {
+                                              return;
+                                            }
+                                            _addToCart(item);
+                                          },
+                                          child: const Icon(
+                                              Icons.add_circle_outline,
+                                              size: 20,
+                                              color: Colors.green),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      'KES ${(item['price'] * item['qty']).toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                          fontSize: 13),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  'Available: $availableStock',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: availableStock <= 5
+                                          ? Colors.red
+                                          : Colors.grey),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                     ),
 
                     // Total + Pay button
