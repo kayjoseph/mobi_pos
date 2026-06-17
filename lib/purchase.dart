@@ -79,6 +79,7 @@ class _PurchaseState extends State<Purchase>
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.green,
+
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () => _scaffoldKey.currentState!.openDrawer(),
