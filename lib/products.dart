@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mobi_pos/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobi_pos/sales.dart';
+import 'package:mobi_pos/purchase.dart';
+
 class Products extends StatefulWidget {
   final String username;
 
@@ -55,18 +57,32 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
 // Add this to your state variables:
   bool _salesExpanded = false;
   void _navigateTo(String title) {
-    Navigator.pop(context); // close drawer
-    if (title == 'Dashboard') {
-      Navigator.popUntil(context, (route) => route.isFirst);
-    } else if (title == 'Products') {
-      // already here, do nothing
-    } else if (title == 'Sales') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Sales(username: widget.username),
-        ),
-      );
+    Navigator.pop(context);
+    switch (title) {
+      case 'Dashboard':
+        Navigator.popUntil(context, (route) => route.isFirst);
+        break;
+      case 'Products':
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    Products(username: widget.username)));
+        break;
+      case 'Sales':
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    Sales(username: widget.username)));
+        break;
+      case 'Purchases':
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    Purchase(username: widget.username)));
+        break;
+    // Others coming soon — do nothing for now
+      default:
+        break;
     }
   }
 
