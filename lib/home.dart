@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobi_pos/login_page.dart';
 import 'package:mobi_pos/products.dart';
 import 'package:mobi_pos/sales.dart';
+import 'package:mobi_pos/purchase.dart';
 
 class Home extends StatefulWidget {
   final String username;
@@ -15,8 +16,8 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _currentPage = 'Dashboard';
+  bool _salesExpanded = false;
 
-  @override
   @override
   void initState() {
     super.initState();
@@ -39,6 +40,7 @@ class _HomeState extends State<Home> {
       );
     });
   }
+
   void _logout() {
     Navigator.pushReplacement(
       context,
@@ -85,7 +87,6 @@ class _HomeState extends State<Home> {
     });
   }
 
-  // Drawer menu items
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Dashboard', 'icon': Icons.dashboard},
     {'title': 'Products', 'icon': Icons.inventory_2},
@@ -99,12 +100,54 @@ class _HomeState extends State<Home> {
       ]
     },
     {'title': 'Purchases', 'icon': Icons.shopping_cart},
-    {'title': 'Expenses', 'icon': Icons.receipt_long},
+    {'title': 'Suppliers', 'icon': Icons.store},
     {'title': 'Customers', 'icon': Icons.people},
+    {'title': 'Expenses', 'icon': Icons.receipt_long},
+    {'title': 'Users', 'icon': Icons.manage_accounts},
+    {'title': 'Settings', 'icon': Icons.settings},
   ];
 
-// Add this to your state variables:
-  bool _salesExpanded = false;
+  void _navigate(String title) {
+    Navigator.pop(context); // close drawer
+    switch (title) {
+      case 'Dashboard':
+        setState(() => _currentPage = 'Dashboard');
+        break;
+      case 'Products':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Products(username: widget.username),
+          ),
+        );
+        break;
+      case 'Purchases':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Purchase(username: widget.username),
+          ),
+        );
+        break;
+      case 'Suppliers':
+      // Coming soon
+        setState(() => _currentPage = 'Suppliers');
+        break;
+      case 'Customers':
+        setState(() => _currentPage = 'Customers');
+        break;
+      case 'Expenses':
+        setState(() => _currentPage = 'Expenses');
+        break;
+      case 'Users':
+        setState(() => _currentPage = 'Users');
+        break;
+      case 'Settings':
+        setState(() => _currentPage = 'Settings');
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,7 +155,6 @@ class _HomeState extends State<Home> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.green,
-        // Hamburger icon to open drawer
         leading: IconButton(
           icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () => _scaffoldKey.currentState!.openDrawer(),
@@ -160,8 +202,6 @@ class _HomeState extends State<Home> {
           const SizedBox(width: 5),
         ],
       ),
-
-      // ---- DRAWER ----
       drawer: Drawer(
         child: Column(
           children: [
@@ -169,11 +209,11 @@ class _HomeState extends State<Home> {
             Container(
               width: double.infinity,
               color: Colors.green,
-              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+              padding: const EdgeInsets.symmetric(
+                  vertical: 40, horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // MobiPos title
                   const Text(
                     'MobiPos',
                     style: TextStyle(
@@ -184,7 +224,6 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // User avatar
                   CircleAvatar(
                     backgroundColor: Colors.orange,
                     radius: 30,
@@ -198,7 +237,6 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // Username
                   Text(
                     widget.username,
                     style: const TextStyle(
@@ -216,22 +254,26 @@ class _HomeState extends State<Home> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: _menuItems.map((item) {
-                  final bool isSelected = _currentPage == item['title'];
+                  final bool isSelected =
+                      _currentPage == item['title'];
 
-                  // Sales item with expandable children
+                  // Sales expandable
                   if (item['children'] != null) {
                     return Column(
                       children: [
-                        // Sales parent item
                         ListTile(
                           leading: Icon(
                             item['icon'],
-                            color: _salesExpanded ? Colors.green : Colors.grey[700],
+                            color: _salesExpanded
+                                ? Colors.green
+                                : Colors.grey[700],
                           ),
                           title: Text(
                             item['title'],
                             style: TextStyle(
-                              color: _salesExpanded ? Colors.green : Colors.black,
+                              color: _salesExpanded
+                                  ? Colors.green
+                                  : Colors.black,
                               fontWeight: _salesExpanded
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -241,13 +283,13 @@ class _HomeState extends State<Home> {
                             _salesExpanded
                                 ? Icons.keyboard_arrow_up
                                 : Icons.keyboard_arrow_down,
-                            color: _salesExpanded ? Colors.green : Colors.grey,
+                            color: _salesExpanded
+                                ? Colors.green
+                                : Colors.grey,
                           ),
-                          onTap: () {
-                            setState(() => _salesExpanded = !_salesExpanded);
-                          },
+                          onTap: () => setState(
+                                  () => _salesExpanded = !_salesExpanded),
                         ),
-                        // Dropdown children
                         if (_salesExpanded)
                           ...item['children'].map<Widget>((child) {
                             return ListTile(
@@ -263,20 +305,17 @@ class _HomeState extends State<Home> {
                                 style: const TextStyle(fontSize: 14),
                               ),
                               onTap: () {
-                                Navigator.pop(context); // close drawer
+                                Navigator.pop(context);
                                 if (child['title'] == 'Sales') {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          Sales(username: widget.username),
+                                      builder: (context) => Sales(
+                                          username: widget.username),
                                     ),
                                   );
-                                } else if (child['title'] == 'Sales Return') {
-                                  // Navigate to Sales Return later
-                                } else if (child['title'] == 'Cancelled Sales') {
-                                  // Navigate to Cancelled Sales later
                                 }
+                                // Sales Return + Cancelled Sales — coming soon
                               },
                             );
                           }).toList(),
@@ -284,47 +323,38 @@ class _HomeState extends State<Home> {
                     );
                   }
 
-                  // Regular menu items
+                  // Regular items
                   return ListTile(
                     leading: Icon(
                       item['icon'],
-                      color: isSelected ? Colors.green : Colors.grey[700],
+                      color: isSelected
+                          ? Colors.green
+                          : Colors.grey[700],
                     ),
                     title: Text(
                       item['title'],
                       style: TextStyle(
-                        color: isSelected ? Colors.green : Colors.black,
-                        fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
+                        color:
+                        isSelected ? Colors.green : Colors.black,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     tileColor: isSelected ? Colors.green[50] : null,
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (item['title'] == 'Products') {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                Products(username: widget.username),
-                          ),
-                        );
-                      } else {
-                        setState(() => _currentPage = item['title']);
-                      }
-                    },
+                    onTap: () => _navigate(item['title']),
                   );
                 }).toList(),
               ),
             ),
 
-            // Logout at bottom of drawer
             const Divider(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text(
                 'Logout',
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.bold),
               ),
               onTap: _logout,
             ),
@@ -335,7 +365,8 @@ class _HomeState extends State<Home> {
       body: Center(
         child: Text(
           '$_currentPage Module',
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+              fontSize: 22, fontWeight: FontWeight.bold),
         ),
       ),
     );
