@@ -57,18 +57,31 @@ class _PurchaseState extends State<Purchase>
 
   void _navigateTo(String title) {
     Navigator.pop(context);
-    if (title == 'Dashboard') {
-      Navigator.popUntil(context, (route) => route.isFirst);
-    } else if (title == 'Products') {
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(
-              builder: (context) =>
-                  Products(username: widget.username)));
-    } else if (title == 'Sales') {
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(
-              builder: (context) =>
-                  Sales(username: widget.username)));
+    switch (title) {
+      case 'Dashboard':
+        Navigator.popUntil(context, (route) => route.isFirst);
+        break;
+      case 'Products':
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    Products(username: widget.username)));
+        break;
+      case 'Sales':
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    Sales(username: widget.username)));
+        break;
+      case 'Purchases':
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    Purchase(username: widget.username)));
+        break;
+    // Others coming soon — do nothing for now
+      default:
+        break;
     }
   }
 
