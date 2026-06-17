@@ -941,7 +941,7 @@ class _POSTabState extends State<_POSTab> {
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
-                      color: Colors.green,
+                      color: Colors.orange,
                       child: Row(
                         mainAxisAlignment:
                         MainAxisAlignment.spaceBetween,
