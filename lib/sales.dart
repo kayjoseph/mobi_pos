@@ -1242,6 +1242,7 @@ class _POSTabState extends State<_POSTab> {
     );
   }
 }
+
 // ---- SALES LIST TAB ----
 class _SalesListTab extends StatefulWidget {
   final String username;
@@ -1473,7 +1474,7 @@ class _SalesListTabState extends State<_SalesListTab> {
             padding: const EdgeInsets.symmetric(
                 horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.green,
+              color: Colors.orange,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(
