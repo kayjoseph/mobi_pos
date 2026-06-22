@@ -218,21 +218,22 @@ class _ExpenseState extends State<Expense> {
                     );
                   }
 
+                  // Regular items
                   return ListTile(
-                    leading: Icon(item['icon'],
-                        color: isSelected
-                            ? Colors.green
-                            : Colors.grey[700]),
-                    title: Text(item['title'],
-                        style: TextStyle(
-                            color: isSelected
-                                ? Colors.green
-                                : Colors.black,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal)),
+                    leading: Icon(
+                      item['icon'],
+                      color: isSelected ? Colors.green : Colors.grey[700],
+                    ),
+                    title: Text(
+                      item['title'],
+                      style: TextStyle(
+                        color: isSelected ? Colors.green : Colors.black,
+                        fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
                     tileColor: isSelected ? Colors.green[50] : null,
-                    onTap: () => _navigateTo(item['title']),
+                    onTap: () => _navigateTo(item['title']),  // 👈 this must be here
                   );
                 }).toList(),
               ),
