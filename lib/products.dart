@@ -3,6 +3,7 @@ import 'package:mobi_pos/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobi_pos/sales.dart';
 import 'package:mobi_pos/purchase.dart';
+import 'package:mobi_pos/expense.dart';
 
 class Products extends StatefulWidget {
   final String username;
@@ -79,6 +80,12 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
             MaterialPageRoute(
                 builder: (context) =>
                     Purchase(username: widget.username)));
+        break;
+      case 'Expenses':
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    Expense(username: widget.username)));
         break;
     // Others coming soon — do nothing for now
       default:
