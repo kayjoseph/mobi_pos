@@ -51,10 +51,12 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
       ]
     },
     {'title': 'Purchases', 'icon': Icons.shopping_cart},
-    {'title': 'Expenses', 'icon': Icons.receipt_long},
+    {'title': 'Suppliers', 'icon': Icons.store},
     {'title': 'Customers', 'icon': Icons.people},
+    {'title': 'Expenses', 'icon': Icons.receipt_long},
+    {'title': 'Users', 'icon': Icons.manage_accounts},
+    {'title': 'Settings', 'icon': Icons.settings},
   ];
-
 // Add this to your state variables:
   bool _salesExpanded = false;
   void _navigateTo(String title) {
