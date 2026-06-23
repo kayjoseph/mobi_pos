@@ -60,6 +60,7 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
 
   bool _salesExpanded = false;
 
+// DELETE _navigate and replace with this:
   void _navigateTo(String title) {
     Navigator.pop(context);
     switch (title) {
@@ -67,10 +68,7 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
         Navigator.popUntil(context, (route) => route.isFirst);
         break;
       case 'Products':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Products(username: widget.username)));
+      // already here
         break;
       case 'Sales':
         Navigator.pushReplacement(context,
@@ -90,12 +88,10 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
                 builder: (context) =>
                     Expense(username: widget.username)));
         break;
-    // Others coming soon — do nothing for now
       default:
         break;
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
