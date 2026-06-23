@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mobi_pos/login_page.dart';
-import 'package:mobi_pos/products.dart';
-import 'package:mobi_pos/sales.dart';
-import 'package:mobi_pos/purchase.dart';
 import 'package:mobi_pos/app_drawer.dart';
 
 class Expense extends StatefulWidget {
