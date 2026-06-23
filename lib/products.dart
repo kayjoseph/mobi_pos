@@ -37,7 +37,7 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
-// Replace the _menuItems list:
+
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Dashboard', 'icon': Icons.dashboard},
     {'title': 'Products', 'icon': Icons.inventory_2},
@@ -57,8 +57,9 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
     {'title': 'Users', 'icon': Icons.manage_accounts},
     {'title': 'Settings', 'icon': Icons.settings},
   ];
-// Add this to your state variables:
+
   bool _salesExpanded = false;
+
   void _navigateTo(String title) {
     Navigator.pop(context);
     switch (title) {
