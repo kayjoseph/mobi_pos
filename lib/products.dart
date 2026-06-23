@@ -5,6 +5,7 @@ import 'package:mobi_pos/sales.dart';
 import 'package:mobi_pos/purchase.dart';
 import 'package:mobi_pos/expense.dart';
 
+
 class Products extends StatefulWidget {
   final String username;
 
@@ -92,6 +93,7 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
         break;
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
