@@ -87,67 +87,6 @@ class _HomeState extends State<Home> {
     });
   }
 
-  final List<Map<String, dynamic>> _menuItems = [
-    {'title': 'Dashboard', 'icon': Icons.dashboard},
-    {'title': 'Products', 'icon': Icons.inventory_2},
-    {
-      'title': 'Sales',
-      'icon': Icons.point_of_sale,
-      'children': [
-        {'title': 'Sales', 'icon': Icons.receipt},
-        {'title': 'Sales Return', 'icon': Icons.assignment_return},
-        {'title': 'Cancelled Sales', 'icon': Icons.cancel},
-      ]
-    },
-    {'title': 'Purchases', 'icon': Icons.shopping_cart},
-    {'title': 'Suppliers', 'icon': Icons.store},
-    {'title': 'Customers', 'icon': Icons.people},
-    {'title': 'Expenses', 'icon': Icons.receipt_long},
-    {'title': 'Users', 'icon': Icons.manage_accounts},
-    {'title': 'Settings', 'icon': Icons.settings},
-  ];
-
-  void _navigate(String title) {
-    Navigator.pop(context); // close drawer
-    switch (title) {
-      case 'Dashboard':
-        setState(() => _currentPage = 'Dashboard');
-        break;
-      case 'Products':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Products(username: widget.username),
-          ),
-        );
-        break;
-      case 'Purchases':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Purchase(username: widget.username),
-          ),
-        );
-        break;
-      case 'Suppliers':
-      // Coming soon
-        setState(() => _currentPage = 'Suppliers');
-        break;
-      case 'Customers':
-        setState(() => _currentPage = 'Customers');
-        break;
-      case 'Expenses':
-        setState(() => _currentPage = 'Expenses');
-        break;
-      case 'Users':
-        setState(() => _currentPage = 'Users');
-        break;
-      case 'Settings':
-        setState(() => _currentPage = 'Settings');
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
