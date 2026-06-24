@@ -37,22 +37,6 @@ class _SalesState extends State<Sales> with SingleTickerProviderStateMixin {
     );
   }
 
-  final List<Map<String, dynamic>> _menuItems = [
-    {'title': 'Dashboard', 'icon': Icons.dashboard},
-    {'title': 'Products', 'icon': Icons.inventory_2},
-    {
-      'title': 'Sales',
-      'icon': Icons.point_of_sale,
-      'children': [
-        {'title': 'Sales', 'icon': Icons.receipt},
-        {'title': 'Sales Return', 'icon': Icons.assignment_return},
-        {'title': 'Cancelled Sales', 'icon': Icons.cancel},
-      ]
-    },
-    {'title': 'Purchases', 'icon': Icons.shopping_cart},
-    {'title': 'Expenses', 'icon': Icons.receipt_long},
-    {'title': 'Customers', 'icon': Icons.people},
-  ];
 
   void _navigateTo(String title) {
     Navigator.pop(context);
