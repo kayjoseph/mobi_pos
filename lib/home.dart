@@ -141,7 +141,7 @@ class _HomeState extends State<Home> {
       ),
       drawer: AppDrawer(
         username: widget.username,
-        currentPage: 'Expenses',
+        currentPage: 'Dashboard',
       ),      body: Center(
         child: Text(
           '$_currentPage Module',
