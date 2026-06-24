@@ -69,7 +69,7 @@ class _ProductsState extends State<Products> with SingleTickerProviderStateMixin
       ),
       drawer: AppDrawer(
         username: widget.username,
-        currentPage: 'Dashboard',
+        currentPage: 'Products',
       ),
 
       // Tab content
