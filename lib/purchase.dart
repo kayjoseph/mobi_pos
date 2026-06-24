@@ -38,52 +38,7 @@ class _PurchaseState extends State<Purchase>
     );
   }
 
-  final List<Map<String, dynamic>> _menuItems = [
-    {'title': 'Dashboard', 'icon': Icons.dashboard},
-    {'title': 'Products', 'icon': Icons.inventory_2},
-    {
-      'title': 'Sales',
-      'icon': Icons.point_of_sale,
-      'children': [
-        {'title': 'Sales', 'icon': Icons.receipt},
-        {'title': 'Sales Return', 'icon': Icons.assignment_return},
-        {'title': 'Cancelled Sales', 'icon': Icons.cancel},
-      ]
-    },
-    {'title': 'Purchases', 'icon': Icons.shopping_cart},
-    {'title': 'Expenses', 'icon': Icons.receipt_long},
-    {'title': 'Customers', 'icon': Icons.people},
-  ];
 
-  void _navigateTo(String title) {
-    Navigator.pop(context);
-    switch (title) {
-      case 'Dashboard':
-        Navigator.popUntil(context, (route) => route.isFirst);
-        break;
-      case 'Products':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Products(username: widget.username)));
-        break;
-      case 'Sales':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Sales(username: widget.username)));
-        break;
-      case 'Purchases':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Purchase(username: widget.username)));
-        break;
-    // Others coming soon — do nothing for now
-      default:
-        break;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
