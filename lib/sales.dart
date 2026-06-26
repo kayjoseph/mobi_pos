@@ -1318,35 +1318,13 @@ class _SalesListTabState extends State<_SalesListTab> {
             ),
           ),
           const SizedBox(height: 12),
-
-          // Summary row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Sales count
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.green[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: Text(
-                  '${_sales.length} sale${_sales.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12),
-                ),
-              ),
-              // Refresh
-              IconButton(
-                onPressed: _fetchSales,
-                icon: const Icon(Icons.refresh, color: Colors.green),
-                tooltip: 'Refresh',
-              ),
-            ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              onPressed: _fetchSales,
+              icon: const Icon(Icons.refresh, color: Colors.green),
+              tooltip: 'Refresh',
+            ),
           ),
           const SizedBox(height: 12),
 
