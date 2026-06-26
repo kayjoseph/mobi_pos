@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobi_pos/login_page.dart';
-import 'package:mobi_pos/products.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:mobi_pos/purchase.dart';
+import 'package:mobi_pos/app_drawer.dart';
+
 
 class Sales extends StatefulWidget {
   final String username;
@@ -37,37 +37,6 @@ class _SalesState extends State<Sales> with SingleTickerProviderStateMixin {
     );
   }
 
-
-  void _navigateTo(String title) {
-    Navigator.pop(context);
-    switch (title) {
-      case 'Dashboard':
-        Navigator.popUntil(context, (route) => route.isFirst);
-        break;
-      case 'Products':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Products(username: widget.username)));
-        break;
-      case 'Sales':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Sales(username: widget.username)));
-        break;
-      case 'Purchases':
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(
-                builder: (context) =>
-                    Purchase(username: widget.username)));
-        break;
-    // Others coming soon — do nothing for now
-      default:
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -99,153 +68,9 @@ class _SalesState extends State<Sales> with SingleTickerProviderStateMixin {
           ],
         ),
       ),
-      drawer: Drawer(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              color: Colors.green,
-              padding: const EdgeInsets.symmetric(
-                  vertical: 40, horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'MobiPos',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  CircleAvatar(
-                    backgroundColor: Colors.orange,
-                    radius: 30,
-                    child: Text(
-                      widget.username[0].toUpperCase(),
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    widget.username,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-            ),
-
-            // Menu items
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: _menuItems.map((item) {
-                  final bool isSelected = item['title'] == 'Sales';
-
-                  if (item['children'] != null) {
-                    return Column(
-                      children: [
-                        ListTile(
-                          leading: Icon(item['icon'],
-                              color: Colors.green),
-                          title: Text(
-                            item['title'],
-                            style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          trailing: Icon(
-                            _salesExpanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                            color: Colors.green,
-                          ),
-                          onTap: () => setState(
-                                  () => _salesExpanded = !_salesExpanded),
-                        ),
-                        if (_salesExpanded)
-                          ...item['children'].map<Widget>((child) {
-                            final bool isChildSelected =
-                                child['title'] == 'Sales';
-                            return ListTile(
-                              contentPadding:
-                              const EdgeInsets.only(left: 40),
-                              leading: Icon(
-                                child['icon'],
-                                color: isChildSelected
-                                    ? Colors.green
-                                    : Colors.grey[600],
-                                size: 20,
-                              ),
-                              title: Text(
-                                child['title'],
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: isChildSelected
-                                      ? Colors.green
-                                      : Colors.black,
-                                  fontWeight: isChildSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              ),
-                              tileColor: isChildSelected
-                                  ? Colors.green[50]
-                                  : null,
-                              onTap: () {
-                                Navigator.pop(context);
-                                if (child['title'] == 'Sales') {
-                                  // already here
-                                }
-                                // Sales Return and Cancelled Sales later
-                              },
-                            );
-                          }).toList(),
-                      ],
-                    );
-                  }
-
-                  return ListTile(
-                    leading: Icon(item['icon'],
-                        color: isSelected
-                            ? Colors.green
-                            : Colors.grey[700]),
-                    title: Text(
-                      item['title'],
-                      style: TextStyle(
-                        color: isSelected ? Colors.green : Colors.black,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                    tileColor: isSelected ? Colors.green[50] : null,
-                    onTap: () => _navigateTo(item['title']),
-                  );
-                }).toList(),
-              ),
-            ),
-
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text('Logout',
-                  style: TextStyle(
-                      color: Colors.red, fontWeight: FontWeight.bold)),
-              onTap: _logout,
-            ),
-            const SizedBox(height: 10),
-          ],
-        ),
+      drawer: AppDrawer(
+        username: widget.username,
+        currentPage: 'Sales',   // change per page
       ),
       body: TabBarView(
         controller: _tabController!,
