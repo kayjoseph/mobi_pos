@@ -1086,7 +1086,7 @@ class _SalesListTabState extends State<_SalesListTab> {
     'Today',
     'Yesterday',
     'Last 7 Days',
-    'Last Month',
+    'Last 1 Month',
     'Last 3 Months',
   ];
 
@@ -1317,17 +1317,7 @@ class _SalesListTabState extends State<_SalesListTab> {
               }).toList(),
             ),
           ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              onPressed: _fetchSales,
-              icon: const Icon(Icons.refresh, color: Colors.green),
-              tooltip: 'Refresh',
-            ),
-          ),
-          const SizedBox(height: 12),
-
+          const SizedBox(height: 10),
           // Table header
           Container(
             padding: const EdgeInsets.symmetric(
@@ -1336,9 +1326,9 @@ class _SalesListTabState extends State<_SalesListTab> {
               color: Colors.green,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 75,
                   child: Text('INV No.',
                       style: TextStyle(
@@ -1346,7 +1336,7 @@ class _SalesListTabState extends State<_SalesListTab> {
                           fontWeight: FontWeight.bold,
                           fontSize: 12)),
                 ),
-                Expanded(
+                const Expanded(
                   flex: 2,
                   child: Text('Total',
                       style: TextStyle(
@@ -1354,7 +1344,7 @@ class _SalesListTabState extends State<_SalesListTab> {
                           fontWeight: FontWeight.bold,
                           fontSize: 12)),
                 ),
-                Expanded(
+                const Expanded(
                   flex: 2,
                   child: Text('Paid',
                       style: TextStyle(
@@ -1362,7 +1352,7 @@ class _SalesListTabState extends State<_SalesListTab> {
                           fontWeight: FontWeight.bold,
                           fontSize: 12)),
                 ),
-                Expanded(
+                const Expanded(
                   flex: 2,
                   child: Text('By',
                       style: TextStyle(
@@ -1370,7 +1360,7 @@ class _SalesListTabState extends State<_SalesListTab> {
                           fontWeight: FontWeight.bold,
                           fontSize: 12)),
                 ),
-                SizedBox(
+                const SizedBox(
                   width: 50,
                   child: Text('Status',
                       textAlign: TextAlign.center,
@@ -1379,7 +1369,13 @@ class _SalesListTabState extends State<_SalesListTab> {
                           fontWeight: FontWeight.bold,
                           fontSize: 12)),
                 ),
-                SizedBox(width: 32),
+                const SizedBox(width: 32),
+                // Refresh button in header
+                GestureDetector(
+                  onTap: _fetchSales,
+                  child: const Icon(Icons.refresh,
+                      color: Colors.white, size: 20),
+                ),
               ],
             ),
           ),
