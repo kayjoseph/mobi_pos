@@ -1343,23 +1343,6 @@ class _SalesListTabState extends State<_SalesListTab> {
                       fontSize: 12),
                 ),
               ),
-              // Total amount
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue),
-                ),
-                child: Text(
-                  'Total: KES ${_totalSales.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12),
-                ),
-              ),
               // Refresh
               IconButton(
                 onPressed: _fetchSales,
