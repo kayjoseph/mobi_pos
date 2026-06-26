@@ -3,7 +3,6 @@ import 'package:mobi_pos/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:mobi_pos/app_drawer.dart';
 
-
 class Sales extends StatefulWidget {
   final String username;
 
@@ -1081,11 +1080,48 @@ class _SalesListTabState extends State<_SalesListTab> {
   final supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _sales = [];
   bool _isLoading = true;
+  String _selectedFilter = 'Today';
+
+  final List<String> _filters = [
+    'Today',
+    'Yesterday',
+    'Last 7 Days',
+    'Last Month',
+    'Last 3 Months',
+  ];
 
   @override
   void initState() {
     super.initState();
     _fetchSales();
+  }
+
+  DateTime get _startDate {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    switch (_selectedFilter) {
+      case 'Today':
+        return today;
+      case 'Yesterday':
+        return today.subtract(const Duration(days: 1));
+      case 'Last 7 Days':
+        return today.subtract(const Duration(days: 7));
+      case 'Last Month':
+        return DateTime(now.year, now.month - 1, now.day);
+      case 'Last 3 Months':
+        return DateTime(now.year, now.month - 3, now.day);
+      default:
+        return today;
+    }
+  }
+
+  DateTime get _endDate {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (_selectedFilter == 'Yesterday') {
+      return today; // up to start of today
+    }
+    return DateTime(now.year, now.month, now.day, 23, 59, 59);
   }
 
   Future<void> _fetchSales() async {
@@ -1094,7 +1130,10 @@ class _SalesListTabState extends State<_SalesListTab> {
       final data = await supabase
           .from('sales')
           .select()
+          .gte('created_at', _startDate.toIso8601String())
+          .lte('created_at', _endDate.toIso8601String())
           .order('created_at', ascending: false);
+
       setState(() {
         _sales = List<Map<String, dynamic>>.from(data);
         _isLoading = false;
@@ -1102,7 +1141,9 @@ class _SalesListTabState extends State<_SalesListTab> {
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red),
       );
     }
   }
@@ -1118,7 +1159,6 @@ class _SalesListTabState extends State<_SalesListTab> {
 
   void _showSaleDetails(Map<String, dynamic> sale) {
     final items = sale['items'] as List<dynamic>;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -1153,7 +1193,6 @@ class _SalesListTabState extends State<_SalesListTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Sale info
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -1162,12 +1201,9 @@ class _SalesListTabState extends State<_SalesListTab> {
                 ),
                 child: Column(
                   children: [
-                    _infoRow('Date',
-                        _formatDate(sale['created_at'])),
-                    _infoRow('Created By',
-                        sale['created_by'] ?? '-'),
-                    _infoRow('Payment',
-                        sale['payment_method'] ?? '-'),
+                    _infoRow('Date', _formatDate(sale['created_at'])),
+                    _infoRow('Created By', sale['created_by'] ?? '-'),
+                    _infoRow('Payment', sale['payment_method'] ?? '-'),
                     if (sale['transaction_code'] != null &&
                         sale['transaction_code'].isNotEmpty)
                       _infoRow('Transaction Code',
@@ -1176,14 +1212,11 @@ class _SalesListTabState extends State<_SalesListTab> {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Items
               const Text('Items',
                   style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               ...items.map((item) => Padding(
-                padding:
-                const EdgeInsets.symmetric(vertical: 3),
+                padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(
                   mainAxisAlignment:
                   MainAxisAlignment.spaceBetween,
@@ -1204,30 +1237,22 @@ class _SalesListTabState extends State<_SalesListTab> {
                 ),
               )),
               const Divider(),
-
-              _infoRow('Total',
-                  'KES ${sale['total_amount']}',
+              _infoRow('Total', 'KES ${sale['total_amount']}',
                   bold: true),
-              _infoRow('Amount Paid',
-                  'KES ${sale['amount_paid']}'),
+              _infoRow('Amount Paid', 'KES ${sale['amount_paid']}'),
               if ((sale['change_amount'] ?? 0) > 0)
-                _infoRow('Change',
-                    'KES ${sale['change_amount']}'),
+                _infoRow('Change', 'KES ${sale['change_amount']}'),
               if ((sale['balance'] ?? 0) > 0)
-                _infoRow(
-                  'Balance Due',
-                  'KES ${sale['balance']}',
-                  valueColor: Colors.red,
-                  bold: true,
-                ),
+                _infoRow('Balance Due', 'KES ${sale['balance']}',
+                    valueColor: Colors.red, bold: true),
             ],
           ),
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
-            style:
-            ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green),
             child: const Text('Close',
                 style: TextStyle(color: Colors.white)),
           ),
@@ -1244,14 +1269,13 @@ class _SalesListTabState extends State<_SalesListTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
-              style: const TextStyle(
-                  color: Colors.grey, fontSize: 13)),
+              style:
+              const TextStyle(color: Colors.grey, fontSize: 13)),
           Text(
             value,
             style: TextStyle(
               fontSize: 13,
-              fontWeight:
-              bold ? FontWeight.bold : FontWeight.w500,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
               color: valueColor,
             ),
           ),
@@ -1260,16 +1284,49 @@ class _SalesListTabState extends State<_SalesListTab> {
     );
   }
 
+  double get _totalSales =>
+      _sales.fold(0, (sum, s) => sum + (s['total_amount'] ?? 0));
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Header row
+          // Date filter chips
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _filters.map((filter) {
+                final isSelected = _selectedFilter == filter;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(filter),
+                    selected: isSelected,
+                    selectedColor: Colors.green,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    onSelected: (_) {
+                      setState(() => _selectedFilter = filter);
+                      _fetchSales();
+                    },
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Summary row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Sales count
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
@@ -1279,12 +1336,31 @@ class _SalesListTabState extends State<_SalesListTab> {
                   border: Border.all(color: Colors.green),
                 ),
                 child: Text(
-                  '${_sales.length} sales',
+                  '${_sales.length} sale${_sales.length == 1 ? '' : 's'}',
                   style: const TextStyle(
                       color: Colors.green,
-                      fontWeight: FontWeight.bold),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
                 ),
               ),
+              // Total amount
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue),
+                ),
+                child: Text(
+                  'Total: KES ${_totalSales.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
+                ),
+              ),
+              // Refresh
               IconButton(
                 onPressed: _fetchSales,
                 icon: const Icon(Icons.refresh, color: Colors.green),
@@ -1299,13 +1375,13 @@ class _SalesListTabState extends State<_SalesListTab> {
             padding: const EdgeInsets.symmetric(
                 horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.orange,
+              color: Colors.green,
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(
               children: [
                 SizedBox(
-                  width: 80,
+                  width: 75,
                   child: Text('INV No.',
                       style: TextStyle(
                           color: Colors.white,
@@ -1322,14 +1398,22 @@ class _SalesListTabState extends State<_SalesListTab> {
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text('Created By',
+                  child: Text('Paid',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12)),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text('By',
                       style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 12)),
                 ),
                 SizedBox(
-                  width: 55,
+                  width: 50,
                   child: Text('Status',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -1337,16 +1421,7 @@ class _SalesListTabState extends State<_SalesListTab> {
                           fontWeight: FontWeight.bold,
                           fontSize: 12)),
                 ),
-                SizedBox(
-                  width: 55,
-                  child: Text('Balance',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12)),
-                ),
-                SizedBox(width: 36),
+                SizedBox(width: 32),
               ],
             ),
           ),
@@ -1357,9 +1432,21 @@ class _SalesListTabState extends State<_SalesListTab> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _sales.isEmpty
-                ? const Center(
-                child: Text('No sales yet',
-                    style: TextStyle(color: Colors.grey)))
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.receipt_long,
+                      size: 60, color: Colors.grey[300]),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No sales for $_selectedFilter',
+                    style:
+                    const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
                 : ListView.builder(
               itemCount: _sales.length,
               itemBuilder: (context, index) {
@@ -1384,7 +1471,7 @@ class _SalesListTabState extends State<_SalesListTab> {
                     children: [
                       // INV No
                       SizedBox(
-                        width: 80,
+                        width: 75,
                         child: Text(
                           'INV-${sale['id'].toString().padLeft(5, '0')}',
                           style: const TextStyle(
@@ -1403,6 +1490,16 @@ class _SalesListTabState extends State<_SalesListTab> {
                               color: Colors.green),
                         ),
                       ),
+                      // Amount paid
+                      Expanded(
+                        flex: 2,
+                        child: Text(
+                          'KES ${sale['amount_paid']}',
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue),
+                        ),
+                      ),
                       // Created by
                       Expanded(
                         flex: 2,
@@ -1414,13 +1511,13 @@ class _SalesListTabState extends State<_SalesListTab> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      // Status badge
+                      // Status
                       SizedBox(
-                        width: 55,
+                        width: 50,
                         child: Container(
                           padding:
                           const EdgeInsets.symmetric(
-                              horizontal: 6,
+                              horizontal: 4,
                               vertical: 3),
                           decoration: BoxDecoration(
                             color: isPaid
@@ -1440,29 +1537,12 @@ class _SalesListTabState extends State<_SalesListTab> {
                           ),
                         ),
                       ),
-                      // Balance
+                      // View
                       SizedBox(
-                        width: 55,
-                        child: Text(
-                          balance > 0
-                              ? 'KES $balance'
-                              : '-',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: balance > 0
-                                  ? Colors.red
-                                  : Colors.grey),
-                        ),
-                      ),
-                      // View details button
-                      SizedBox(
-                        width: 36,
+                        width: 32,
                         child: IconButton(
-                          icon: const Icon(
-                              Icons.visibility,
-                              color: Colors.blue,
-                              size: 18),
+                          icon: const Icon(Icons.visibility,
+                              color: Colors.blue, size: 18),
                           padding: EdgeInsets.zero,
                           onPressed: () =>
                               _showSaleDetails(sale),
