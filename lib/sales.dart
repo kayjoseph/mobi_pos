@@ -1284,9 +1284,6 @@ class _SalesListTabState extends State<_SalesListTab> {
     );
   }
 
-  double get _totalSales =>
-      _sales.fold(0, (sum, s) => sum + (s['total_amount'] ?? 0));
-
   @override
   Widget build(BuildContext context) {
     return Padding(
