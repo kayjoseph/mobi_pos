@@ -96,42 +96,40 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> _suppliers = [];
-  List<Map<String, dynamic>> _products = [];
-  List<Map<String, dynamic>> _cart = [];
+  List<Map<String, dynamic>> _searchResults = [];
+  List<Map<String, dynamic>> _purchaseItems = [];
   Map<String, dynamic>? _selectedSupplier;
   bool _isLoading = true;
+  bool _isSearching = false;
   String _searchQuery = '';
   String _paymentMethod = 'Cash';
   final _amountPaidController = TextEditingController();
   final _notesController = TextEditingController();
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetchData();
+    _fetchSuppliers();
   }
 
   @override
   void dispose() {
     _amountPaidController.dispose();
     _notesController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _fetchSuppliers() async {
     setState(() => _isLoading = true);
     try {
       final suppliers = await supabase
           .from('suppliers')
           .select('id, name')
           .order('name');
-      final products = await supabase
-          .from('products')
-          .select('id, name, buying_price, opening_stock, categories(name)')
-          .order('name');
       setState(() {
         _suppliers = List<Map<String, dynamic>>.from(suppliers);
-        _products = List<Map<String, dynamic>>.from(products);
         _selectedSupplier =
         _suppliers.isNotEmpty ? _suppliers.first : null;
         _isLoading = false;
@@ -141,64 +139,127 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
     }
   }
 
-  List<Map<String, dynamic>> get _filteredProducts {
-    if (_searchQuery.isEmpty) return _products;
-    return _products
-        .where((p) => p['name']
-        .toString()
-        .toLowerCase()
-        .contains(_searchQuery.toLowerCase()))
-        .toList();
+  Future<void> _searchProducts(String query) async {
+    if (query.trim().isEmpty) {
+      setState(() => _searchResults = []);
+      return;
+    }
+    setState(() => _isSearching = true);
+    try {
+      final data = await supabase
+          .from('products')
+          .select('id, name, buying_price, categories(name)')
+          .ilike('name', '%$query%')
+          .limit(10);
+      setState(() {
+        _searchResults = List<Map<String, dynamic>>.from(data);
+        _isSearching = false;
+      });
+    } catch (e) {
+      setState(() => _isSearching = false);
+    }
   }
 
-  void _addToCart(Map<String, dynamic> product) {
+  bool _isInPurchase(int productId) {
+    return _purchaseItems.any((p) => p['id'] == productId);
+  }
+
+  void _addItem(Map<String, dynamic> product) {
+    if (_isInPurchase(product['id'])) return;
     setState(() {
-      final index =
-      _cart.indexWhere((c) => c['id'] == product['id']);
-      if (index >= 0) {
-        _cart[index]['qty']++;
-      } else {
-        _cart.add({
-          'id': product['id'],
-          'name': product['name'],
-          'price': product['buying_price'] ?? 0,
-          'qty': 1,
-        });
-      }
+      _purchaseItems.add({
+        'id': product['id'],
+        'name': product['name'],
+        'price': (product['buying_price'] ?? 0).toDouble(),
+        'qty': 1,
+      });
+      _searchResults = [];
+      _searchController.clear();
+      _searchQuery = '';
     });
   }
 
-  void _removeFromCart(int productId) {
-    setState(() {
-      final index =
-      _cart.indexWhere((c) => c['id'] == productId);
-      if (index >= 0) {
-        if (_cart[index]['qty'] > 1) {
-          _cart[index]['qty']--;
-        } else {
-          _cart.removeAt(index);
-        }
-      }
-    });
+  void _removeItem(int productId) {
+    setState(() =>
+        _purchaseItems.removeWhere((p) => p['id'] == productId));
   }
 
-  void _deleteFromCart(int productId) {
-    setState(() => _cart.removeWhere((c) => c['id'] == productId));
-  }
+  double get _total => _purchaseItems.fold(
+      0, (sum, item) => sum + item['price'] * item['qty']);
 
-  int _cartQty(int productId) {
-    final item = _cart.where((c) => c['id'] == productId);
-    return item.isEmpty ? 0 : item.first['qty'];
-  }
+  Future<void> _showEditItemDialog(
+      Map<String, dynamic> item, int index) async {
+    final qtyController =
+    TextEditingController(text: item['qty'].toString());
+    final priceController =
+    TextEditingController(text: item['price'].toString());
 
-  double get _total =>
-      _cart.fold(0, (sum, item) => sum + item['price'] * item['qty']);
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          item['name'],
+          style: const TextStyle(fontSize: 15),
+          overflow: TextOverflow.ellipsis,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: qtyController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Quantity',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.numbers),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: priceController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Buying Price (KES)',
+                prefixText: 'KES ',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.attach_money),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final qty = int.tryParse(qtyController.text) ?? 1;
+              final price =
+                  double.tryParse(priceController.text) ?? 0;
+              setState(() {
+                _purchaseItems[index]['qty'] =
+                qty < 1 ? 1 : qty;
+                _purchaseItems[index]['price'] = price;
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green),
+            child: const Text('Save',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _completePurchase() async {
-    if (_cart.isEmpty) {
+    if (_purchaseItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Add items to purchase'),
+            content: Text('Add at least one item'),
             backgroundColor: Colors.red),
       );
       return;
@@ -210,20 +271,18 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
     final status = amountPaid >= _total ? 'paid' : 'unpaid';
 
     try {
-      // Save purchase
       await supabase.from('purchases').insert({
         'supplier_id': _selectedSupplier?['id'],
         'total_amount': _total,
         'amount_paid': amountPaid,
         'balance': balance < 0 ? 0 : balance,
-        'payment_method':
-        amountPaid > 0 ? _paymentMethod : null,
+        'payment_method': amountPaid > 0 ? _paymentMethod : null,
         'status': status,
         'notes': _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
         'created_by': widget.username,
-        'items': _cart
+        'items': _purchaseItems
             .map((item) => {
           'product_id': item['id'],
           'name': item['name'],
@@ -234,8 +293,8 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
             .toList(),
       });
 
-      // Update stock for each item
-      for (final item in _cart) {
+      // Add stock for each item
+      for (final item in _purchaseItems) {
         final product = await supabase
             .from('products')
             .select('opening_stock')
@@ -244,10 +303,11 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
 
         final currentStock =
         (product['opening_stock'] ?? 0).toInt();
-        final newStock = currentStock + item['qty']; // ADD stock
+        final newStock = currentStock + item['qty'];
 
         await supabase.from('products').update({
           'opening_stock': newStock,
+          'buying_price': item['price'], // update price too
         }).eq('id', item['id']);
       }
 
@@ -263,50 +323,49 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
                 Text('Purchase Recorded!'),
               ],
             ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(10),
+            content: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _summaryRow('Supplier',
+                      _selectedSupplier?['name'] ?? '-'),
+                  _summaryRow('Items',
+                      '${_purchaseItems.length} item(s)'),
+                  _summaryRow('Total',
+                      'KES ${_total.toStringAsFixed(2)}'),
+                  _summaryRow('Paid',
+                      'KES ${amountPaid.toStringAsFixed(2)}'),
+                  if (balance > 0)
+                    _summaryRow(
+                      'Balance',
+                      'KES ${balance.toStringAsFixed(2)}',
+                      valueColor: Colors.red,
+                    ),
+                  _summaryRow(
+                    'Status',
+                    status.toUpperCase(),
+                    valueColor: status == 'paid'
+                        ? Colors.green
+                        : Colors.red,
                   ),
-                  child: Column(
-                    children: [
-                      _summaryRow('Supplier',
-                          _selectedSupplier?['name'] ?? '-'),
-                      _summaryRow('Total',
-                          'KES ${_total.toStringAsFixed(2)}'),
-                      _summaryRow('Paid',
-                          'KES ${amountPaid.toStringAsFixed(2)}'),
-                      if (balance > 0)
-                        _summaryRow(
-                          'Balance',
-                          'KES ${balance.toStringAsFixed(2)}',
-                          valueColor: Colors.red,
-                        ),
-                      _summaryRow('Status',
-                          status.toUpperCase(),
-                          valueColor: status == 'paid'
-                              ? Colors.green
-                              : Colors.red),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
             actions: [
               ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
                   setState(() {
-                    _cart.clear();
+                    _purchaseItems.clear();
                     _amountPaidController.clear();
                     _notesController.clear();
                     _paymentMethod = 'Cash';
                   });
-                  _fetchData();
                 },
                 icon: const Icon(Icons.refresh,
                     color: Colors.white),
@@ -352,611 +411,413 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
   Widget build(BuildContext context) {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
-        : Column(
-      children: [
-        // Supplier selector
-        Container(
-          color: Colors.grey[50],
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              DropdownButtonFormField<Map<String, dynamic>>(
-                value: _selectedSupplier,
-                decoration: const InputDecoration(
-                  labelText: 'Supplier',
-                  prefixIcon: Icon(Icons.store),
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 8),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                items: _suppliers.map((s) {
-                  return DropdownMenuItem(
-                    value: s,
-                    child: Text(s['name']),
+        : SingleChildScrollView(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Supplier dropdown
+          DropdownButtonFormField<Map<String, dynamic>>(
+            value: _selectedSupplier,
+            decoration: const InputDecoration(
+              labelText: 'Supplier',
+              prefixIcon: Icon(Icons.store),
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: _suppliers.map((s) {
+              return DropdownMenuItem(
+                value: s,
+                child: Text(s['name']),
+              );
+            }).toList(),
+            onChanged: (value) =>
+                setState(() => _selectedSupplier = value),
+          ),
+          const SizedBox(height: 12),
+
+          // Search box
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search and add item...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                    _searchResults = [];
+                  });
+                },
+              )
+                  : null,
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              isDense: true,
+            ),
+            onChanged: (v) {
+              setState(() => _searchQuery = v);
+              _searchProducts(v);
+            },
+          ),
+
+          // Search results dropdown
+          if (_searchResults.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[300]!),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  )
+                ],
+              ),
+              child: Column(
+                children: _searchResults.map((product) {
+                  final alreadyAdded =
+                  _isInPurchase(product['id']);
+                  return ListTile(
+                    dense: true,
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.green[100],
+                      radius: 16,
+                      child: Text(
+                        product['name'][0].toUpperCase(),
+                        style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12),
+                      ),
+                    ),
+                    title: Text(product['name'],
+                        style: const TextStyle(fontSize: 13)),
+                    subtitle: Text(
+                      product['categories'] != null
+                          ? product['categories']['name']
+                          : '-',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    trailing: alreadyAdded
+                        ? const Icon(Icons.check,
+                        color: Colors.green)
+                        : const Icon(Icons.add_circle,
+                        color: Colors.green),
+                    onTap: alreadyAdded
+                        ? null
+                        : () => _addItem(product),
                   );
                 }).toList(),
-                onChanged: (value) =>
-                    setState(() => _selectedSupplier = value),
               ),
-              const SizedBox(height: 8),
-              // Search
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search items...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                      borderRadius:
-                      BorderRadius.circular(10)),
-                  contentPadding:
-                  const EdgeInsets.symmetric(
-                      vertical: 8),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (v) =>
-                    setState(() => _searchQuery = v),
-              ),
-            ],
-          ),
-        ),
+            ),
 
-        // Products + Cart
-        Expanded(
-          child: Row(
-            children: [
-              // Products list
-              Expanded(
-                flex: 3,
-                child: _filteredProducts.isEmpty
-                    ? const Center(
-                    child: Text('No items found',
+          if (_isSearching)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: Center(
+                  child: CircularProgressIndicator()),
+            ),
+
+          const SizedBox(height: 16),
+
+          // Purchase items list
+          if (_purchaseItems.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: const Center(
+                child: Text(
+                  'Search and add items above',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            )
+          else ...[
+            // Items header
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Text('Item',
                         style: TextStyle(
-                            color: Colors.grey)))
-                    : ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: _filteredProducts.length,
-                  itemBuilder: (context, index) {
-                    final product =
-                    _filteredProducts[index];
-                    final inCart =
-                    _cartQty(product['id']);
-
-                    return GestureDetector(
-                      onTap: () =>
-                          _addToCart(product),
-                      child: Container(
-                        margin: const EdgeInsets
-                            .only(bottom: 6),
-                        padding:
-                        const EdgeInsets.all(
-                            10),
-                        decoration: BoxDecoration(
-                          color: inCart > 0
-                              ? Colors.green[50]
-                              : Colors.white,
-                          borderRadius:
-                          BorderRadius.circular(
-                              8),
-                          border: Border.all(
-                            color: inCart > 0
-                                ? Colors.green
-                                : Colors.grey[200]!,
-                            width:
-                            inCart > 0 ? 2 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor:
-                              Colors.green[100],
-                              radius: 18,
-                              child: Text(
-                                product['name'][0]
-                                    .toUpperCase(),
-                                style:
-                                const TextStyle(
-                                    color: Colors
-                                        .green,
-                                    fontWeight:
-                                    FontWeight
-                                        .bold),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
-                                children: [
-                                  Text(
-                                    product['name'],
-                                    style: const TextStyle(
-                                        fontWeight:
-                                        FontWeight
-                                            .w600,
-                                        fontSize: 13),
-                                    overflow:
-                                    TextOverflow
-                                        .ellipsis,
-                                  ),
-                                  Text(
-                                    product['categories'] !=
-                                        null
-                                        ? product[
-                                    'categories']
-                                    ['name']
-                                        : '-',
-                                    style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Colors
-                                            .grey),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment
-                                  .end,
-                              children: [
-                                Text(
-                                  'KES ${product['buying_price'] ?? 0}',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color:
-                                      Colors.green,
-                                      fontWeight:
-                                      FontWeight
-                                          .bold),
-                                ),
-                                if (inCart > 0)
-                                  Container(
-                                    padding:
-                                    const EdgeInsets
-                                        .symmetric(
-                                        horizontal:
-                                        6,
-                                        vertical:
-                                        2),
-                                    decoration:
-                                    BoxDecoration(
-                                      color:
-                                      Colors.green,
-                                      borderRadius:
-                                      BorderRadius
-                                          .circular(
-                                          8),
-                                    ),
-                                    child: Text(
-                                      'x$inCart',
-                                      style: const TextStyle(
-                                          color: Colors
-                                              .white,
-                                          fontSize: 10),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12)),
+                  ),
+                  SizedBox(
+                    width: 40,
+                    child: Text('Qty',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12)),
+                  ),
+                  SizedBox(
+                    width: 70,
+                    child: Text('Price',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12)),
+                  ),
+                  SizedBox(
+                    width: 70,
+                    child: Text('Subtotal',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12)),
+                  ),
+                  SizedBox(width: 50),
+                ],
               ),
+            ),
+            const SizedBox(height: 4),
 
-              Container(width: 1, color: Colors.grey[200]),
-
-              // Cart
-              Expanded(
-                flex: 2,
-                child: Column(
+            // Items rows
+            ...List.generate(_purchaseItems.length, (index) {
+              final item = _purchaseItems[index];
+              final subtotal = item['price'] * item['qty'];
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: index % 2 == 0
+                      ? Colors.grey[50]
+                      : Colors.white,
+                  border: Border(
+                    bottom: BorderSide(
+                        color: Colors.grey[200]!),
+                  ),
+                ),
+                child: Row(
                   children: [
-                    // Cart header
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      color: Colors.green,
-                      child: Row(
-                        mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Items',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15)),
-                          if (_cart.isNotEmpty)
-                            GestureDetector(
-                              onTap: () => setState(
-                                      () => _cart.clear()),
-                              child: const Text('Clear',
-                                  style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 13)),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                    // Cart items
+                    // Item name
                     Expanded(
-                      child: _cart.isEmpty
-                          ? const Center(
-                        child: Column(
-                          mainAxisAlignment:
-                          MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                                Icons
-                                    .shopping_cart_outlined,
-                                size: 40,
-                                color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text('No items added',
-                                style: TextStyle(
-                                    color: Colors.grey)),
-                          ],
-                        ),
-                      )
-                          : ListView.builder(
-                        itemCount: _cart.length,
-                        itemBuilder: (context, index) {
-                          if (index >= _cart.length) {
-                            return const SizedBox();
-                          }
-                          final item =
-                          Map<String, dynamic>.from(
-                              _cart[index]);
-
-                          return Container(
-                            padding:
-                            const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                    color:
-                                    Colors.grey[100]!),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment
-                                      .spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item['name'],
-                                        style: const TextStyle(
-                                            fontWeight:
-                                            FontWeight
-                                                .w600,
-                                            fontSize: 13),
-                                        overflow:
-                                        TextOverflow
-                                            .ellipsis,
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: () =>
-                                          _deleteFromCart(
-                                              item['id']),
-                                      child: const Icon(
-                                          Icons.close,
-                                          size: 16,
-                                          color: Colors.red),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisAlignment:
-                                  MainAxisAlignment
-                                      .spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () =>
-                                              _removeFromCart(
-                                                  item['id']),
-                                          child: const Icon(
-                                              Icons
-                                                  .remove_circle_outline,
-                                              size: 20,
-                                              color:
-                                              Colors.red),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () async {
-                                            final controller =
-                                            TextEditingController(
-                                                text: item[
-                                                'qty']
-                                                    .toString());
-                                            await showDialog(
-                                              context: context,
-                                              builder: (context) =>
-                                                  AlertDialog(
-                                                    title: Text(
-                                                        'Qty — ${item['name']}',
-                                                        style: const TextStyle(
-                                                            fontSize:
-                                                            14)),
-                                                    content: TextField(
-                                                      controller:
-                                                      controller,
-                                                      keyboardType:
-                                                      TextInputType
-                                                          .number,
-                                                      autofocus: true,
-                                                      textAlign:
-                                                      TextAlign
-                                                          .center,
-                                                      style: const TextStyle(
-                                                          fontSize: 22,
-                                                          fontWeight:
-                                                          FontWeight
-                                                              .bold),
-                                                      decoration:
-                                                      const InputDecoration(
-                                                        border:
-                                                        OutlineInputBorder(),
-                                                      ),
-                                                    ),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                context),
-                                                        child: const Text(
-                                                            'Cancel'),
-                                                      ),
-                                                      ElevatedButton(
-                                                        onPressed: () {
-                                                          int typed =
-                                                              int.tryParse(
-                                                                  controller
-                                                                      .text) ??
-                                                                  1;
-                                                          if (typed < 1)
-                                                            typed = 1;
-                                                          setState(() {
-                                                            final i = _cart
-                                                                .indexWhere((c) =>
-                                                            c['id'] ==
-                                                                item['id']);
-                                                            if (i >= 0)
-                                                              _cart[i][
-                                                              'qty'] =
-                                                                  typed;
-                                                          });
-                                                          Navigator.pop(
-                                                              context);
-                                                        },
-                                                        style: ElevatedButton
-                                                            .styleFrom(
-                                                            backgroundColor:
-                                                            Colors.green),
-                                                        child: const Text(
-                                                            'OK',
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .white)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                            );
-                                          },
-                                          child: Container(
-                                            padding:
-                                            const EdgeInsets
-                                                .symmetric(
-                                                horizontal: 10,
-                                                vertical: 4),
-                                            decoration:
-                                            BoxDecoration(
-                                              border: Border.all(
-                                                  color: Colors
-                                                      .grey[300]!),
-                                              borderRadius:
-                                              BorderRadius
-                                                  .circular(6),
-                                            ),
-                                            child: Text(
-                                              '${item['qty']}',
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight:
-                                                  FontWeight
-                                                      .bold),
-                                            ),
-                                          ),
-                                        ),
-                                        GestureDetector(
-                                          onTap: () =>
-                                              _addToCart(item),
-                                          child: const Icon(
-                                              Icons
-                                                  .add_circle_outline,
-                                              size: 20,
-                                              color: Colors.green),
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      'KES ${(item['price'] * item['qty']).toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                          fontWeight:
-                                          FontWeight.bold,
-                                          color: Colors.green,
-                                          fontSize: 13),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                      flex: 3,
+                      child: Text(
+                        item['name'],
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-
-                    // Payment section
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                            Colors.black.withOpacity(0.05),
-                            blurRadius: 4,
-                            offset: const Offset(0, -2),
-                          )
-                        ],
+                    // Qty
+                    SizedBox(
+                      width: 40,
+                      child: Text(
+                        '${item['qty']}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold),
                       ),
-                      child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    ),
+                    // Price
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        '${item['price']}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey),
+                      ),
+                    ),
+                    // Subtotal
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        subtotal.toStringAsFixed(2),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    // Actions
+                    SizedBox(
+                      width: 50,
+                      child: Row(
                         children: [
-                          // Total
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('TOTAL',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15)),
-                              Text(
-                                'KES ${_total.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: Colors.green),
-                              ),
-                            ],
+                          GestureDetector(
+                            onTap: () =>
+                                _showEditItemDialog(
+                                    item, index),
+                            child: const Icon(Icons.edit,
+                                color: Colors.blue,
+                                size: 18),
                           ),
-                          const SizedBox(height: 8),
-
-                          // Payment method
-                          Row(
-                            children: ['Cash', 'M-Pesa', 'Bank']
-                                .map((method) {
-                              final isSelected =
-                                  _paymentMethod == method;
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() =>
-                                  _paymentMethod = method),
-                                  child: Container(
-                                    margin: const EdgeInsets.only(
-                                        right: 4),
-                                    padding:
-                                    const EdgeInsets.symmetric(
-                                        vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? Colors.green
-                                          : Colors.grey[100],
-                                      borderRadius:
-                                      BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? Colors.green
-                                            : Colors.grey[300]!,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      method,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : Colors.grey[600],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Amount paid
-                          TextField(
-                            controller: _amountPaidController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText:
-                              'Amount Paid (leave empty if unpaid)',
-                              prefixText: 'KES ',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 10),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Notes
-                          TextField(
-                            controller: _notesController,
-                            decoration: const InputDecoration(
-                              labelText: 'Notes (optional)',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 10),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Record button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _cart.isEmpty
-                                  ? null
-                                  : _completePurchase,
-                              icon: const Icon(Icons.save,
-                                  color: Colors.white),
-                              label: const Text('Record Purchase',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                padding:
-                                const EdgeInsets.symmetric(
-                                    vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius:
-                                    BorderRadius.circular(8)),
-                              ),
-                            ),
+                          const SizedBox(width: 6),
+                          GestureDetector(
+                            onTap: () =>
+                                _removeItem(item['id']),
+                            child: const Icon(Icons.close,
+                                color: Colors.red,
+                                size: 18),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
+              );
+            }),
+
+            const SizedBox(height: 12),
+
+            // Total
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green),
               ),
-            ],
-          ),
-        ),
-      ],
+              child: Row(
+                mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('TOTAL',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
+                  Text(
+                    'KES ${_total.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.green),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Payment method
+            Row(
+              children: ['Cash', 'M-Pesa', 'Bank']
+                  .map((method) {
+                final isSelected = _paymentMethod == method;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(
+                            () => _paymentMethod = method),
+                    child: Container(
+                      margin:
+                      const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? Colors.green
+                            : Colors.grey[100],
+                        borderRadius:
+                        BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? Colors.green
+                              : Colors.grey[300]!,
+                        ),
+                      ),
+                      child: Text(
+                        method,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+
+            // Amount paid
+            TextField(
+              controller: _amountPaidController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText:
+                'Amount Paid (leave empty if unpaid)',
+                prefixText: 'KES ',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Notes
+            TextField(
+              controller: _notesController,
+              decoration: const InputDecoration(
+                labelText: 'Notes (optional)',
+                border: OutlineInputBorder(),
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Record button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _purchaseItems.isEmpty
+                    ? null
+                    : _completePurchase,
+                icon: const Icon(Icons.save,
+                    color: Colors.white),
+                label: const Text('Record Purchase',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ],
+      ),
     );
   }
 }
