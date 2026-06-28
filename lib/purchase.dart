@@ -411,294 +411,351 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
   Widget build(BuildContext context) {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Supplier dropdown
-          DropdownButtonFormField<Map<String, dynamic>>(
-            value: _selectedSupplier,
-            decoration: const InputDecoration(
-              labelText: 'Supplier',
-              prefixIcon: Icon(Icons.store),
-              border: OutlineInputBorder(),
-              isDense: true,
-            ),
-            items: _suppliers.map((s) {
-              return DropdownMenuItem(
-                value: s,
-                child: Text(s['name']),
-              );
-            }).toList(),
-            onChanged: (value) =>
-                setState(() => _selectedSupplier = value),
-          ),
-          const SizedBox(height: 12),
-
-          // Search box
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search and add item...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() {
-                    _searchQuery = '';
-                    _searchResults = [];
-                  });
-                },
-              )
-                  : null,
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              isDense: true,
-            ),
-            onChanged: (v) {
-              setState(() => _searchQuery = v);
-              _searchProducts(v);
-            },
-          ),
-
-          // Search results dropdown
-          if (_searchResults.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  )
-                ],
-              ),
-              child: Column(
-                children: _searchResults.map((product) {
-                  final alreadyAdded =
-                  _isInPurchase(product['id']);
-                  return ListTile(
-                    dense: true,
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.green[100],
-                      radius: 16,
-                      child: Text(
-                        product['name'][0].toUpperCase(),
-                        style: const TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12),
-                      ),
-                    ),
-                    title: Text(product['name'],
-                        style: const TextStyle(fontSize: 13)),
-                    subtitle: Text(
-                      product['categories'] != null
-                          ? product['categories']['name']
-                          : '-',
-                      style: const TextStyle(fontSize: 11),
-                    ),
-                    trailing: alreadyAdded
-                        ? const Icon(Icons.check,
-                        color: Colors.green)
-                        : const Icon(Icons.add_circle,
-                        color: Colors.green),
-                    onTap: alreadyAdded
-                        ? null
-                        : () => _addItem(product),
+        : Column(
+      children: [
+        // ---- TOP: Supplier + Search (fixed) ----
+        Container(
+          color: Colors.grey[50],
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              // Supplier dropdown
+              DropdownButtonFormField<Map<String, dynamic>>(
+                value: _selectedSupplier,
+                decoration: const InputDecoration(
+                  labelText: 'Supplier',
+                  prefixIcon: Icon(Icons.store),
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                items: _suppliers.map((s) {
+                  return DropdownMenuItem(
+                    value: s,
+                    child: Text(s['name']),
                   );
                 }).toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedSupplier = value),
               ),
-            ),
+              const SizedBox(height: 8),
 
-          if (_isSearching)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Center(
-                  child: CircularProgressIndicator()),
-            ),
-
-          const SizedBox(height: 16),
-
-          // Purchase items list
-          if (_purchaseItems.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: const Center(
-                child: Text(
-                  'Search and add items above',
-                  style: TextStyle(color: Colors.grey),
+              // Search box
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search and add item...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                        _searchResults = [];
+                      });
+                    },
+                  )
+                      : null,
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  isDense: true,
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
+                onChanged: (v) {
+                  setState(() => _searchQuery = v);
+                  _searchProducts(v);
+                },
               ),
-            )
-          else ...[
-            // Items header
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Text('Item',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12)),
-                  ),
-                  SizedBox(
-                    width: 40,
-                    child: Text('Qty',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12)),
-                  ),
-                  SizedBox(
-                    width: 70,
-                    child: Text('Price',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12)),
-                  ),
-                  SizedBox(
-                    width: 70,
-                    child: Text('Subtotal',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12)),
-                  ),
-                  SizedBox(width: 50),
-                ],
-              ),
-            ),
-            const SizedBox(height: 4),
 
-            // Items rows
-            ...List.generate(_purchaseItems.length, (index) {
-              final item = _purchaseItems[index];
-              final subtotal = item['price'] * item['qty'];
-              return Container(
+              // Search results
+              if (_isSearching)
+                const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Center(
+                      child: CircularProgressIndicator()),
+                ),
+              if (_searchResults.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                    Border.all(color: Colors.grey[300]!),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    children: _searchResults.map((product) {
+                      final alreadyAdded =
+                      _isInPurchase(product['id']);
+                      return ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.green[100],
+                          radius: 16,
+                          child: Text(
+                            product['name'][0].toUpperCase(),
+                            style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12),
+                          ),
+                        ),
+                        title: Text(product['name'],
+                            style:
+                            const TextStyle(fontSize: 13)),
+                        subtitle: Text(
+                          product['categories'] != null
+                              ? product['categories']['name']
+                              : '-',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        trailing: alreadyAdded
+                            ? const Icon(Icons.check,
+                            color: Colors.green)
+                            : const Icon(Icons.add_circle,
+                            color: Colors.green),
+                        onTap: alreadyAdded
+                            ? null
+                            : () => _addItem(product),
+                      );
+                    }).toList(),
+                  ),
+                ),
+            ],
+          ),
+        ),
+
+        // ---- MIDDLE: Items list (scrollable, newest on top) ----
+        Expanded(
+          child: _purchaseItems.isEmpty
+              ? const Center(
+            child: Text(
+              'Search and add items above',
+              style: TextStyle(color: Colors.grey),
+            ),
+          )
+              : Column(
+            children: [
+              // Table header
+              Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: index % 2 == 0
-                      ? Colors.grey[50]
-                      : Colors.white,
-                  border: Border(
-                    bottom: BorderSide(
-                        color: Colors.grey[200]!),
-                  ),
-                ),
-                child: Row(
+                color: Colors.green,
+                child: const Row(
                   children: [
-                    // Item name
                     Expanded(
                       flex: 3,
-                      child: Text(
-                        item['name'],
-                        style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text('Item',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
                     ),
-                    // Qty
-                    SizedBox(
-                      width: 40,
-                      child: Text(
-                        '${item['qty']}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    // Price
                     SizedBox(
                       width: 70,
-                      child: Text(
-                        '${item['price']}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey),
-                      ),
+                      child: Text('Qty',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
                     ),
-                    // Subtotal
                     SizedBox(
-                      width: 70,
-                      child: Text(
-                        subtotal.toStringAsFixed(2),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold),
-                      ),
+                      width: 80,
+                      child: Text('Price',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
                     ),
-                    // Actions
                     SizedBox(
-                      width: 50,
+                      width: 80,
+                      child: Text('Subtotal',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
+                    ),
+                    SizedBox(width: 30),
+                  ],
+                ),
+              ),
+
+              // Items — newest first (reversed)
+              Expanded(
+                child: ListView.builder(
+                  itemCount: _purchaseItems.length,
+                  // reverse so newest item appears at top
+                  reverse: true,
+                  itemBuilder: (context, index) {
+                    final item = _purchaseItems[index];
+                    final subtotal =
+                        item['price'] * item['qty'];
+                    final isEven = index % 2 == 0;
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isEven
+                            ? Colors.grey[50]
+                            : Colors.white,
+                        border: Border(
+                          bottom: BorderSide(
+                              color: Colors.grey[200]!),
+                        ),
+                      ),
                       child: Row(
                         children: [
-                          GestureDetector(
-                            onTap: () =>
-                                _showEditItemDialog(
-                                    item, index),
-                            child: const Icon(Icons.edit,
-                                color: Colors.blue,
-                                size: 18),
+                          // Item name
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              item['name'],
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight:
+                                  FontWeight.w500),
+                              overflow:
+                              TextOverflow.ellipsis,
+                            ),
                           ),
-                          const SizedBox(width: 6),
-                          GestureDetector(
-                            onTap: () =>
-                                _removeItem(item['id']),
-                            child: const Icon(Icons.close,
-                                color: Colors.red,
-                                size: 18),
+                          // Qty input
+                          SizedBox(
+                            width: 70,
+                            child: TextField(
+                              controller:
+                              TextEditingController(
+                                  text: item['qty']
+                                      .toString()),
+                              keyboardType:
+                              TextInputType.number,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight:
+                                  FontWeight.bold),
+                              decoration:
+                              const InputDecoration(
+                                border:
+                                OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding:
+                                EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 4),
+                              ),
+                              onSubmitted: (val) {
+                                final qty =
+                                    int.tryParse(val) ??
+                                        1;
+                                setState(() {
+                                  _purchaseItems[index]
+                                  ['qty'] =
+                                  qty < 1 ? 1 : qty;
+                                });
+                              },
+                            ),
+                          ),
+                          // Price input
+                          SizedBox(
+                            width: 80,
+                            child: TextField(
+                              controller:
+                              TextEditingController(
+                                  text: item['price']
+                                      .toString()),
+                              keyboardType:
+                              TextInputType.number,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 13),
+                              decoration:
+                              const InputDecoration(
+                                border:
+                                OutlineInputBorder(),
+                                isDense: true,
+                                contentPadding:
+                                EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 4),
+                              ),
+                              onSubmitted: (val) {
+                                final price =
+                                    double.tryParse(val) ??
+                                        0;
+                                setState(() {
+                                  _purchaseItems[index]
+                                  ['price'] = price;
+                                });
+                              },
+                            ),
+                          ),
+                          // Subtotal
+                          SizedBox(
+                            width: 80,
+                            child: Text(
+                              subtotal.toStringAsFixed(2),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green,
+                                  fontWeight:
+                                  FontWeight.bold),
+                            ),
+                          ),
+                          // Delete
+                          SizedBox(
+                            width: 30,
+                            child: GestureDetector(
+                              onTap: () => _removeItem(
+                                  item['id']),
+                              child: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                  size: 18),
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              );
-            }),
-
-            const SizedBox(height: 12),
-
-            // Total
-            Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green),
               ),
-              child: Row(
+            ],
+          ),
+        ),
+
+        // ---- BOTTOM: Total + Payment + Record (always visible) ----
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 6,
+                offset: const Offset(0, -2),
+              )
+            ],
+          ),
+          child: Column(
+            children: [
+              // Total
+              Row(
                 mainAxisAlignment:
                 MainAxisAlignment.spaceBetween,
                 children: [
@@ -715,109 +772,107 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-            // Payment method
-            Row(
-              children: ['Cash', 'M-Pesa', 'Bank']
-                  .map((method) {
-                final isSelected = _paymentMethod == method;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(
-                            () => _paymentMethod = method),
-                    child: Container(
-                      margin:
-                      const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Colors.green
-                            : Colors.grey[100],
-                        borderRadius:
-                        BorderRadius.circular(8),
-                        border: Border.all(
+              // Payment method
+              Row(
+                children:
+                ['Cash', 'M-Pesa', 'Bank'].map((method) {
+                  final isSelected = _paymentMethod == method;
+                  return Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(
+                              () => _paymentMethod = method),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 6),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8),
+                        decoration: BoxDecoration(
                           color: isSelected
                               ? Colors.green
-                              : Colors.grey[300]!,
+                              : Colors.grey[100],
+                          borderRadius:
+                          BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.green
+                                : Colors.grey[300]!,
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        method,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.grey[600],
+                        child: Text(
+                          method,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.grey[600],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 10),
-
-            // Amount paid
-            TextField(
-              controller: _amountPaidController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText:
-                'Amount Paid (leave empty if unpaid)',
-                prefixText: 'KES ',
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 10),
+                  );
+                }).toList(),
               ),
-            ),
-            const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
-            // Notes
-            TextField(
-              controller: _notesController,
-              decoration: const InputDecoration(
-                labelText: 'Notes (optional)',
-                border: OutlineInputBorder(),
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 10),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Record button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _purchaseItems.isEmpty
-                    ? null
-                    : _completePurchase,
-                icon: const Icon(Icons.save,
-                    color: Colors.white),
-                label: const Text('Record Purchase',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+              // Amount paid
+              TextField(
+                controller: _amountPaidController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText:
+                  'Amount Paid (leave empty if unpaid)',
+                  prefixText: 'KES ',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 10),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ],
-      ),
+              const SizedBox(height: 8),
+
+              // Notes
+              TextField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notes (optional)',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Record button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _purchaseItems.isEmpty
+                      ? null
+                      : _completePurchase,
+                  icon: const Icon(Icons.save,
+                      color: Colors.white),
+                  label: const Text('Record Purchase',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
