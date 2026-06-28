@@ -38,14 +38,12 @@ class _HomeState extends State<Home> {
       );
     });
   }
-
   void _logout() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
-
   void _showProfileMenu(BuildContext context) {
     showMenu<String>(
       context: context,
