@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mobi_pos/home.dart';
-import 'package:mobi_pos/login_page.dart';
 import 'package:mobi_pos/splash_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
