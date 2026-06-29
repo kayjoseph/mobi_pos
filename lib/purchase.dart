@@ -441,97 +441,115 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
               ),
               const SizedBox(height: 8),
 
-              // Search box
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search and add item...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      setState(() {
-                        _searchQuery = '';
-                        _searchResults = [];
-                      });
-                    },
-                  )
-                      : null,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  isDense: true,
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                onChanged: (v) {
-                  setState(() => _searchQuery = v);
-                  _searchProducts(v);
-                },
-              ),
-
-              // Search results
-              if (_isSearching)
-                const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Center(
-                      child: CircularProgressIndicator()),
-                ),
-              if (_searchResults.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border:
-                    Border.all(color: Colors.grey[300]!),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
+              // Search box with overlay results
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Search field
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search and add item...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                            _searchResults = [];
+                          });
+                        },
                       )
-                    ],
+                          : null,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    onChanged: (v) {
+                      setState(() => _searchQuery = v);
+                      _searchProducts(v);
+                    },
                   ),
-                  child: Column(
-                    children: _searchResults.map((product) {
-                      final alreadyAdded =
-                      _isInPurchase(product['id']);
-                      return ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.green[100],
-                          radius: 16,
-                          child: Text(
-                            product['name'][0].toUpperCase(),
-                            style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12),
+
+                  // Floating results overlay
+                  if (_searchResults.isNotEmpty || _isSearching)
+                    Positioned(
+                      top: 44, // just below the search field
+                      left: 0,
+                      right: 0,
+                      child: Material(
+                        elevation: 8,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            maxHeight: 220, // max height before scroll
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: _isSearching
+                              ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Center(
+                                child: CircularProgressIndicator()),
+                          )
+                              : ListView(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            children:
+                            _searchResults.map((product) {
+                              final alreadyAdded =
+                              _isInPurchase(product['id']);
+                              return ListTile(
+                                dense: true,
+                                leading: CircleAvatar(
+                                  backgroundColor:
+                                  Colors.green[100],
+                                  radius: 16,
+                                  child: Text(
+                                    product['name'][0]
+                                        .toUpperCase(),
+                                    style: const TextStyle(
+                                        color: Colors.green,
+                                        fontWeight:
+                                        FontWeight.bold,
+                                        fontSize: 12),
+                                  ),
+                                ),
+                                title: Text(product['name'],
+                                    style: const TextStyle(
+                                        fontSize: 13)),
+                                subtitle: Text(
+                                  product['categories'] != null
+                                      ? product['categories']
+                                  ['name']
+                                      : '-',
+                                  style:
+                                  const TextStyle(fontSize: 11),
+                                ),
+                                trailing: alreadyAdded
+                                    ? const Icon(Icons.check,
+                                    color: Colors.green)
+                                    : const Icon(
+                                    Icons.add_circle,
+                                    color: Colors.green),
+                                onTap: alreadyAdded
+                                    ? null
+                                    : () => _addItem(product),
+                              );
+                            }).toList(),
                           ),
                         ),
-                        title: Text(product['name'],
-                            style:
-                            const TextStyle(fontSize: 13)),
-                        subtitle: Text(
-                          product['categories'] != null
-                              ? product['categories']['name']
-                              : '-',
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        trailing: alreadyAdded
-                            ? const Icon(Icons.check,
-                            color: Colors.green)
-                            : const Icon(Icons.add_circle,
-                            color: Colors.green),
-                        onTap: alreadyAdded
-                            ? null
-                            : () => _addItem(product),
-                      );
-                    }).toList(),
-                  ),
-                ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ),
