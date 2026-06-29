@@ -865,7 +865,8 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
                     padding: const EdgeInsets.symmetric(
                         vertical: 14),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
