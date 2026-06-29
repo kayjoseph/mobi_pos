@@ -710,124 +710,130 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
                   )
                 ],
               ),
-              child: Column(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // Total
-                  Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('TOTAL',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16)),
-                      Text(
-                        'KES ${_total.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.green),
-                      ),
-                    ],
+                  // Left column — Total + Payment method
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Total
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('TOTAL',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14)),
+                            Text(
+                              'KES ${_total.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.green),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        // Payment method
+                        Row(
+                          children: ['Cash', 'M-Pesa', 'Bank'].map((method) {
+                            final isSelected = _paymentMethod == method;
+                            return Expanded(
+                              child: GestureDetector(
+                                onTap: () =>
+                                    setState(() => _paymentMethod = method),
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 4),
+                                  padding:
+                                  const EdgeInsets.symmetric(vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Colors.green
+                                        : Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors.green
+                                          : Colors.grey[300]!,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    method,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.grey[600],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(width: 8),
 
-                  // Payment method
-                  Row(
-                    children: ['Cash', 'M-Pesa', 'Bank']
-                        .map((method) {
-                      final isSelected =
-                          _paymentMethod == method;
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(
-                                  () => _paymentMethod = method),
-                          child: Container(
-                            margin: const EdgeInsets.only(
-                                right: 6),
-                            padding:
-                            const EdgeInsets.symmetric(
-                                vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Colors.green
-                                  : Colors.grey[100],
-                              borderRadius:
-                              BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isSelected
-                                    ? Colors.green
-                                    : Colors.grey[300]!,
-                              ),
-                            ),
-                            child: Text(
-                              method,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.grey[600],
-                              ),
-                            ),
+                  // Middle column — Amount paid + Notes
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _amountPaidController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Amount Paid',
+                            prefixText: 'KES ',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Amount paid
-                  TextField(
-                    controller: _amountPaidController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText:
-                      'Amount Paid (leave empty if unpaid)',
-                      prefixText: 'KES ',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 10),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _notesController,
+                          decoration: const InputDecoration(
+                            labelText: 'Notes',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 8),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(width: 8),
 
-                  // Notes
-                  TextField(
-                    controller: _notesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes (optional)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 10),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Record button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _purchaseItems.isEmpty
-                          ? null
-                          : _completePurchase,
-                      icon: const Icon(Icons.save,
-                          color: Colors.white),
-                      label: const Text('Record Purchase',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                            BorderRadius.circular(8)),
+                  // Right column — Record button
+                  Expanded(
+                    flex: 2,
+                    child: SizedBox(
+                      height: 72,
+                      child: ElevatedButton.icon(
+                        onPressed:
+                        _purchaseItems.isEmpty ? null : _completePurchase,
+                        icon: const Icon(Icons.save,
+                            color: Colors.white, size: 16),
+                        label: const Text('Record',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
                       ),
                     ),
                   ),
