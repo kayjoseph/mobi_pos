@@ -5,6 +5,7 @@ import 'package:mobi_pos/products.dart';
 import 'package:mobi_pos/sales.dart';
 import 'package:mobi_pos/purchase.dart';
 import 'package:mobi_pos/expense.dart';
+import 'package:mobi_pos/supplier.dart';
 
 class AppDrawer extends StatefulWidget {
   final String username;
@@ -90,6 +91,15 @@ class _AppDrawerState extends State<AppDrawer> {
           context,
           MaterialPageRoute(
             builder: (context) => Expense(username: widget.username),
+          ),
+              (route) => false,
+        );
+        break;
+      case 'Suppliers':
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Supplier(username: widget.username),
           ),
               (route) => false,
         );
