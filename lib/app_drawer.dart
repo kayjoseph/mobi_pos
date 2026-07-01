@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobi_pos/customer.dart';
 import 'package:mobi_pos/login_page.dart';
 import 'package:mobi_pos/home.dart';
 import 'package:mobi_pos/products.dart';
@@ -104,9 +105,17 @@ class _AppDrawerState extends State<AppDrawer> {
               (route) => false,
         );
         break;
+      case 'Customers':
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => Customer(username: widget.username),
+          ),
+              (route) => false,
+        );
+        break;
+    // Replace the default case:
       default:
-      // Coming soon modules
-        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$title — Coming Soon'),
