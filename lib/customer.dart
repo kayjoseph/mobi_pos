@@ -54,32 +54,6 @@ class _CustomerState extends State<Customer>
           style: TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          CircleAvatar(
-            backgroundColor: Colors.orange,
-            radius: 18,
-            child: Text(
-              widget.username[0].toUpperCase(),
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 10),
-          TextButton.icon(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text('Logout',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold)),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 5),
-        ],
         bottom: TabBar(
           controller: _tabController!,
           indicatorColor: Colors.white,
@@ -282,7 +256,7 @@ class _NewCustomerTabState extends State<_NewCustomerTab> {
                 prefixIcon: Icon(Icons.account_balance_wallet),
                 border: OutlineInputBorder(),
                 helperText:
-                'Negative = advance payment, Positive = outstanding balance',
+                '( -ve = advance payment, +ve = outstanding balance)',
                 helperMaxLines: 2,
               ),
             ),
@@ -295,18 +269,19 @@ class _NewCustomerTabState extends State<_NewCustomerTab> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _isSaving ? null : _clearForm,
-                    icon: const Icon(Icons.clear, color: Colors.red),
+                    icon: const Icon(Icons.clear, color: Colors.white),
                     label: const Text(
                       'Cancel',
                       style: TextStyle(
-                          color: Colors.red,
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 16),
                     ),
                     style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.orange,
                       padding:
                       const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: Colors.red),
+                      side: const BorderSide(color: Colors.orange),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -697,7 +672,7 @@ class _CustomerListTabState extends State<_CustomerListTab> {
                 ),
                 Expanded(
                   flex: 2,
-                  child: Text('Balance',
+                  child: Text('Curr. Bal',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: Colors.white,
@@ -793,37 +768,15 @@ class _CustomerListTabState extends State<_CustomerListTab> {
                       // Balance
                       Expanded(
                         flex: 2,
-                        child: Container(
-                          padding:
-                          const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3),
-                          decoration: BoxDecoration(
-                            color: isZero
-                                ? Colors.grey[100]
-                                : isNegative
-                                ? Colors.blue[50]
-                                : Colors.red[50],
-                            borderRadius:
-                            BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            isZero
-                                ? 'KES 0.00'
-                                : isNegative
-                                ? '-KES ${balance.abs().toStringAsFixed(2)}'
-                                : 'KES ${balance.toStringAsFixed(2)}',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: isZero
-                                  ? Colors.grey
-                                  : isNegative
-                                  ? Colors.blue
-                                  : Colors.red,
-                            ),
-                          ),
+                        child: Text(
+                          balance == 0
+                              ? 'KES 0.00'
+                              : 'KES ${balance.toStringAsFixed(2)}',
+                          textAlign: TextAlign.center,  // 👈 add this
+                          style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       // Actions
