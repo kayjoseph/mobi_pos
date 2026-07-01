@@ -193,7 +193,7 @@ class _NewSupplierTabState extends State<_NewSupplierTab> {
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
                 labelText: 'Phone Number *',
-                hintText: 'e.g. 0712345678',
+                hintText: 'e.g. 0123456789',
                 prefixIcon: Icon(Icons.phone),
                 border: OutlineInputBorder(),
               ),
