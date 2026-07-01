@@ -187,31 +187,37 @@ class _NewSupplierTabState extends State<_NewSupplierTab> {
             ),
             const SizedBox(height: 16),
 
-            // Phone
+            // Phone field
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
+              maxLength: 10,
               decoration: const InputDecoration(
                 labelText: 'Phone Number *',
-                hintText: 'e.g. 0123456789',
+                hintText: 'e.g. 0712345678',
                 prefixIcon: Icon(Icons.phone),
                 border: OutlineInputBorder(),
+                counterText: '', // hides the counter below field
               ),
-              validator: (value) => value!.trim().isEmpty
-                  ? 'Phone number is required'
-                  : null,
+              validator: (value) {
+                if (value!.trim().isEmpty) return 'Phone number is required';
+                if (value.trim().length < 10) return 'Phone must be 10 digits';
+                return null;
+              },
             ),
             const SizedBox(height: 16),
 
-            // Till number
+            // Till number field
             TextFormField(
               controller: _tillController,
               keyboardType: TextInputType.number,
+              maxLength: 8,
               decoration: const InputDecoration(
                 labelText: 'Till Number (optional)',
                 hintText: 'e.g. 123456',
                 prefixIcon: Icon(Icons.point_of_sale),
                 border: OutlineInputBorder(),
+                counterText: '',
               ),
             ),
             const SizedBox(height: 16),
@@ -230,34 +236,65 @@ class _NewSupplierTabState extends State<_NewSupplierTab> {
             ),
             const SizedBox(height: 30),
 
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isSaving ? null : _saveSupplier,
-                icon: _isSaving
-                    ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      color: Colors.white, strokeWidth: 2),
-                )
-                    : const Icon(Icons.save, color: Colors.white),
-                label: Text(
-                  _isSaving ? 'Saving...' : 'Save Supplier',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
+            Row(
+              children: [
+                // Cancel button
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isSaving
+                        ? null
+                        : () {
+                      _nameController.clear();
+                      _phoneController.clear();
+                      _tillController.clear();
+                      _openingBalanceController.clear();
+                    },
+                    icon: const Icon(Icons.clear, color: Colors.white),
+                    label: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                const SizedBox(width: 12),
+
+                // Save button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isSaving ? null : _saveSupplier,
+                    icon: _isSaving
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2),
+                    )
+                        : const Icon(Icons.save, color: Colors.white),
+                    label: Text(
+                      _isSaving ? 'Saving...' : 'Save Supplier',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -345,26 +382,36 @@ class _SupplierListTabState extends State<_SupplierListTab> {
                       : null,
                 ),
                 const SizedBox(height: 12),
+
+                // Phone field:
                 TextFormField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
+                  maxLength: 10,
                   decoration: const InputDecoration(
                     labelText: 'Phone Number *',
                     prefixIcon: Icon(Icons.phone),
                     border: OutlineInputBorder(),
+                    counterText: '',
                   ),
-                  validator: (value) => value!.trim().isEmpty
-                      ? 'Phone is required'
-                      : null,
+                  validator: (value) {
+                    if (value!.trim().isEmpty) return 'Phone is required';
+                    if (value.trim().length < 10) return 'Phone must be 10 digits';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
+
+                // Till number field:
                 TextFormField(
                   controller: tillController,
                   keyboardType: TextInputType.number,
+                  maxLength: 8,
                   decoration: const InputDecoration(
                     labelText: 'Till Number (optional)',
                     prefixIcon: Icon(Icons.point_of_sale),
                     border: OutlineInputBorder(),
+                    counterText: '',
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -427,7 +474,7 @@ class _SupplierListTabState extends State<_SupplierListTab> {
             label: const Text('Update',
                 style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue),
+                backgroundColor: Colors.orange),
           ),
         ],
       ),
