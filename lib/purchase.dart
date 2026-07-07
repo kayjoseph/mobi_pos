@@ -813,7 +813,6 @@ class _NewPurchaseTabState extends State<_NewPurchaseTab> {
                     ),
                   ),
                   const SizedBox(width: 8),
-
                   // Right column — Record button
                   Expanded(
                     flex: 2,
