@@ -25,6 +25,7 @@ class AppDrawer extends StatefulWidget {
 
 class _AppDrawerState extends State<AppDrawer> {
   bool _salesExpanded = false;
+  bool _reportsExpanded = false;
 
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Dashboard', 'icon': Icons.dashboard},
@@ -42,7 +43,15 @@ class _AppDrawerState extends State<AppDrawer> {
     {'title': 'Suppliers', 'icon': Icons.store},
     {'title': 'Customers', 'icon': Icons.people},
     {'title': 'Expenses', 'icon': Icons.receipt_long},
-    {'title': 'Reports', 'icon': Icons.bar_chart},
+    {
+      'title': 'Reports',
+      'icon': Icons.bar_chart,
+      'children': [
+        {'title': 'Accounting Reports', 'icon': Icons.account_balance},
+        {'title': 'Sales Report', 'icon': Icons.point_of_sale},
+        {'title': 'Purchase Report', 'icon': Icons.shopping_cart},
+      ]
+    },
     {'title': 'Users', 'icon': Icons.manage_accounts},
     {'title': 'Settings', 'icon': Icons.settings},
   ];
