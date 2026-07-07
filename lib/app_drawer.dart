@@ -41,6 +41,7 @@ class _AppDrawerState extends State<AppDrawer> {
     {'title': 'Suppliers', 'icon': Icons.store},
     {'title': 'Customers', 'icon': Icons.people},
     {'title': 'Expenses', 'icon': Icons.receipt_long},
+    {'title': 'Reports', 'icon': Icons.bar_chart},
     {'title': 'Users', 'icon': Icons.manage_accounts},
     {'title': 'Settings', 'icon': Icons.settings},
   ];
