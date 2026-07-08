@@ -8,6 +8,9 @@ import 'package:mobi_pos/purchase.dart';
 import 'package:mobi_pos/expense.dart';
 import 'package:mobi_pos/supplier.dart';
 import 'package:mobi_pos/reports.dart';
+import 'accounting_reports.dart';
+import 'package:mobi_pos/sales_report.dart';
+import 'purchase_report.dart';
 
 class AppDrawer extends StatefulWidget {
   final String username;
@@ -57,17 +60,16 @@ class _AppDrawerState extends State<AppDrawer> {
   ];
 
   void _navigateTo(BuildContext context, String title) {
-    Navigator.pop(context); // close drawer
+    Navigator.pop(context);
 
-    if (title == widget.currentPage) return; // already here
+    if (title == widget.currentPage) return;
 
     switch (title) {
       case 'Dashboard':
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Home(username: widget.username),
-          ),
+              builder: (context) => Home(username: widget.username)),
               (route) => false,
         );
         break;
@@ -75,8 +77,8 @@ class _AppDrawerState extends State<AppDrawer> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Products(username: widget.username),
-          ),
+              builder: (context) =>
+                  Products(username: widget.username)),
               (route) => false,
         );
         break;
@@ -84,8 +86,7 @@ class _AppDrawerState extends State<AppDrawer> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Sales(username: widget.username),
-          ),
+              builder: (context) => Sales(username: widget.username)),
               (route) => false,
         );
         break;
@@ -93,8 +94,8 @@ class _AppDrawerState extends State<AppDrawer> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Purchase(username: widget.username),
-          ),
+              builder: (context) =>
+                  Purchase(username: widget.username)),
               (route) => false,
         );
         break;
@@ -102,8 +103,8 @@ class _AppDrawerState extends State<AppDrawer> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Expense(username: widget.username),
-          ),
+              builder: (context) =>
+                  Expense(username: widget.username)),
               (route) => false,
         );
         break;
@@ -111,8 +112,8 @@ class _AppDrawerState extends State<AppDrawer> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Supplier(username: widget.username),
-          ),
+              builder: (context) =>
+                  Supplier(username: widget.username)),
               (route) => false,
         );
         break;
@@ -120,21 +121,38 @@ class _AppDrawerState extends State<AppDrawer> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Customer(username: widget.username),
-          ),
+              builder: (context) =>
+                  Customer(username: widget.username)),
               (route) => false,
         );
         break;
-      case 'Reports':
+      case 'Accounting Reports':
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => Reports(username: widget.username),
-          ),
+              builder: (context) =>
+                  AccountingReports(username: widget.username)),
               (route) => false,
         );
         break;
-    // Replace the default case:
+      case 'Sales Report':
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  SalesReport(username: widget.username)),
+              (route) => false,
+        );
+        break;
+      case 'Purchase Report':
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  PurchaseReport(username: widget.username)),
+              (route) => false,
+        );
+        break;
       default:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -206,45 +224,66 @@ class _AppDrawerState extends State<AppDrawer> {
                 final bool isSelected =
                     widget.currentPage == item['title'];
 
-                // Sales expandable
+                // Expandable items (Sales + Reports)
                 if (item['children'] != null) {
                   final bool isSalesPage =
                       widget.currentPage == 'Sales' ||
                           widget.currentPage == 'Sales Return' ||
                           widget.currentPage == 'Cancelled Sales';
 
+                  final bool isReportsPage =
+                      widget.currentPage == 'Accounting Reports' ||
+                          widget.currentPage == 'Sales Report' ||
+                          widget.currentPage == 'Purchase Report';
+
+                  final bool isThisExpanded =
+                  item['title'] == 'Sales'
+                      ? _salesExpanded || isSalesPage
+                      : _reportsExpanded || isReportsPage;
+
+                  final bool isThisPage = item['title'] == 'Sales'
+                      ? isSalesPage
+                      : isReportsPage;
+
                   return Column(
                     children: [
                       ListTile(
                         leading: Icon(
                           item['icon'],
-                          color: isSalesPage || _salesExpanded
+                          color: isThisPage || isThisExpanded
                               ? Colors.green
                               : Colors.grey[700],
                         ),
                         title: Text(
                           item['title'],
                           style: TextStyle(
-                            color: isSalesPage || _salesExpanded
+                            color: isThisPage || isThisExpanded
                                 ? Colors.green
                                 : Colors.black,
-                            fontWeight: isSalesPage || _salesExpanded
+                            fontWeight: isThisPage || isThisExpanded
                                 ? FontWeight.bold
                                 : FontWeight.normal,
                           ),
                         ),
                         trailing: Icon(
-                          _salesExpanded || isSalesPage
+                          isThisExpanded
                               ? Icons.keyboard_arrow_up
                               : Icons.keyboard_arrow_down,
-                          color: isSalesPage || _salesExpanded
+                          color: isThisPage || isThisExpanded
                               ? Colors.green
                               : Colors.grey,
                         ),
-                        onTap: () => setState(
-                                () => _salesExpanded = !_salesExpanded),
+                        onTap: () {
+                          setState(() {
+                            if (item['title'] == 'Sales') {
+                              _salesExpanded = !_salesExpanded;
+                            } else {
+                              _reportsExpanded = !_reportsExpanded;
+                            }
+                          });
+                        },
                       ),
-                      if (_salesExpanded || isSalesPage)
+                      if (isThisExpanded)
                         ...item['children'].map<Widget>((child) {
                           final bool isChildSelected =
                               widget.currentPage == child['title'];
@@ -292,7 +331,8 @@ class _AppDrawerState extends State<AppDrawer> {
                   title: Text(
                     item['title'],
                     style: TextStyle(
-                      color: isSelected ? Colors.green : Colors.black,
+                      color:
+                      isSelected ? Colors.green : Colors.black,
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
