@@ -8,9 +8,6 @@ import 'package:mobi_pos/purchase.dart';
 import 'package:mobi_pos/expense.dart';
 import 'package:mobi_pos/supplier.dart';
 import 'package:mobi_pos/reports.dart';
-import 'accounting_reports.dart';
-import 'package:mobi_pos/sales_report.dart';
-import 'purchase_report.dart';
 
 class AppDrawer extends StatefulWidget {
   final String username;
