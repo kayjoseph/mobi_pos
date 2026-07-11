@@ -818,9 +818,9 @@ class _PurchaseReportState extends State<PurchaseReport> {
   }
 }
 
-// ================================================================
+// ===============================================================
 // ACCOUNTING REPORTS (P&L)
-// ================================================================
+// ===============================================================
 class AccountingReports extends StatefulWidget {
   final String username;
   const AccountingReports({super.key, required this.username});
