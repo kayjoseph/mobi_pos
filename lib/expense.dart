@@ -54,32 +54,6 @@ class _ExpenseState extends State<Expense>
           style: TextStyle(
               color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          CircleAvatar(
-            backgroundColor: Colors.orange,
-            radius: 18,
-            child: Text(
-              widget.username[0].toUpperCase(),
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 10),
-          TextButton.icon(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text('Logout',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold)),
-            style: TextButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 5),
-        ],
         bottom: TabBar(
           controller: _tabController!,
           indicatorColor: Colors.white,
