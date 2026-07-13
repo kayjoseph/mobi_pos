@@ -25,29 +25,29 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Look up user by username in your users table
+      // Convert username to lowercase before querying
       final result = await supabase
           .from('users')
           .select('id, password')
-          .eq('username', _usernameController.text.trim())
+          .eq('username', _usernameController.text.trim().toLowerCase())
           .single();
 
-      // 2. Compare the entered password with the stored password
-      if (result['password'] != _passwordController.text.trim()) {
+      // Compare password case-insensitively
+      if (result['password'].toString().toLowerCase() !=
+          _passwordController.text.trim().toLowerCase()) {
         throw Exception('You have entered Incorrect password');
       }
 
-      // 3. Login successful — navigate to home
       if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => Home(username: _usernameController.text.trim()),
+            builder: (context) => Home(
+                username: _usernameController.text.trim()),
           ),
         );
       }
     } on PostgrestException catch (e) {
-      // User not found in the table
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.code == 'PGRST116'
@@ -69,7 +69,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = false);
     }
   }
-
   @override
   void dispose() {
     _usernameController.dispose();
