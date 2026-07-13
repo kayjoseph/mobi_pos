@@ -109,7 +109,15 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(),
                     ),
-                    validator: (value) => value!.isEmpty ? 'Please enter your username' : null,
+                    // Convert to lowercase as user types
+                    onChanged: (value) {
+                      _usernameController.value = _usernameController.value.copyWith(
+                        text: value.toLowerCase(),
+                        selection: TextSelection.collapsed(offset: value.length),
+                      );
+                    },
+                    validator: (value) =>
+                    value!.isEmpty ? 'Please enter your username' : null,
                   ),
                   const SizedBox(height: 20),
 
