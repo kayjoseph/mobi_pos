@@ -41,3 +41,14 @@ class _HomeState extends State<Home> {
     Colors.pink,
     Colors.amber,
   ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Welcome, ${widget.username}!',
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
