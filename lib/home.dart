@@ -30,3 +30,14 @@ class _HomeState extends State<Home> {
 
   // Pie chart data — sales by category
   List<Map<String, dynamic>> _salesByCategory = [];
+
+  final List<Color> _chartColors = [
+    Colors.green,
+    Colors.blue,
+    Colors.orange,
+    Colors.purple,
+    Colors.red,
+    Colors.teal,
+    Colors.pink,
+    Colors.amber,
+  ];
