@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Home extends StatefulWidget {
   final String username;
-
   const Home({super.key, required this.username});
 
   @override
@@ -18,17 +17,14 @@ class _HomeState extends State<Home> {
   GlobalKey<ScaffoldState>();
   final supabase = Supabase.instance.client;
 
-  // Stats
   int _totalCustomers = 0;
   int _totalSuppliers = 0;
   double _todaySales = 0;
   double _monthSales = 0;
+  int _totalInvoicesMonth = 0;
   int _pendingSales = 0;
   int _pendingPurchases = 0;
-  int _totalInvoicesMonth = 0;
   bool _isLoading = true;
-
-  // Pie chart data — sales by category
   List<Map<String, dynamic>> _salesByCategory = [];
 
   final List<Color> _chartColors = [
@@ -41,25 +37,25 @@ class _HomeState extends State<Home> {
     Colors.pink,
     Colors.amber,
   ];
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Welcome, ${widget.username}!',
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+        SnackBar(
+          content: Text(
+            'Welcome, ${widget.username}!',
+            style: const TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
           ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+        ),
       );
     });
     _fetchDashboardData();
@@ -77,91 +73,77 @@ class _HomeState extends State<Home> {
       final monthStart =
       DateTime(now.year, now.month, 1).toIso8601String();
 
-      // Customers count
-      final customers = await supabase
-          .from('customers')
-          .select('id', const FetchOptions(count: CountOption.exact));
+      // Run all queries in parallel
+      final results = await Future.wait([
+        supabase.from('customers').select('id',
+            const FetchOptions(count: CountOption.exact)),
+        supabase.from('suppliers').select('id',
+            const FetchOptions(count: CountOption.exact)),
+        supabase
+            .from('sales')
+            .select('total_amount')
+            .gte('created_at', todayStart)
+            .lte('created_at', todayEnd),
+        supabase
+            .from('sales')
+            .select('total_amount, status')
+            .gte('created_at', monthStart),
+        supabase.from('purchases').select('id',
+            const FetchOptions(count: CountOption.exact))
+            .eq('status', 'unpaid'),
+        supabase
+            .from('sales')
+            .select('items')
+            .gte('created_at', monthStart),
+        supabase
+            .from('products')
+            .select('name, categories(name)'),
+      ]);
 
-      // Suppliers count
-      final suppliers = await supabase
-          .from('suppliers')
-          .select('id', const FetchOptions(count: CountOption.exact));
+      final customers = results[0] as PostgrestResponse;
+      final suppliers = results[1] as PostgrestResponse;
+      final todaySalesData = results[2] as List;
+      final monthSalesData = results[3] as List;
+      final pendingPurchases = results[4] as PostgrestResponse;
+      final allSales = results[5] as List;
+      final productsData = results[6] as List;
 
-      // Today sales
-      final todaySalesData = await supabase
-          .from('sales')
-          .select('total_amount')
-          .gte('created_at', todayStart)
-          .lte('created_at', todayEnd);
-
-      // Month sales + invoices
-      final monthSalesData = await supabase
-          .from('sales')
-          .select('total_amount, status')
-          .gte('created_at', monthStart);
-
-      // Pending purchases
-      final pendingPurchases = await supabase
-          .from('purchases')
-          .select('id', const FetchOptions(count: CountOption.exact))
-          .eq('status', 'unpaid');
-
-      // Sales by category from items jsonb
-      final allSales = await supabase
-          .from('sales')
-          .select('items')
-          .gte('created_at', monthStart);
-
-      // Process category sales
-      final Map<String, double> categoryTotals = {};
-      for (final sale in allSales) {
-        final items = sale['items'] as List<dynamic>;
-        for (final item in items) {
-          // We use product name first letter as category placeholder
-          // This will be improved when category is stored in sales items
-          final name = item['name'].toString();
-          final subtotal =
-          (item['subtotal'] ?? 0).toDouble();
-          categoryTotals[name] =
-              (categoryTotals[name] ?? 0) + subtotal;
-        }
-      }
-
-      // Get actual categories from products in sales
-      final productsData = await supabase
-          .from('products')
-          .select('name, categories(name)');
-
+      // Build product → category map
       final Map<String, String> productCategoryMap = {};
       for (final p in productsData) {
         productCategoryMap[p['name']] =
             p['categories']?['name'] ?? 'Other';
       }
 
+      // Aggregate sales by category
       final Map<String, double> catSales = {};
-      categoryTotals.forEach((productName, total) {
-        final cat =
-            productCategoryMap[productName] ?? 'Other';
-        catSales[cat] = (catSales[cat] ?? 0) + total;
-      });
+      for (final sale in allSales) {
+        final items = sale['items'] as List<dynamic>;
+        for (final item in items) {
+          final productName = item['name'].toString();
+          final subtotal =
+          (item['subtotal'] ?? 0).toDouble();
+          final cat =
+              productCategoryMap[productName] ?? 'Other';
+          catSales[cat] = (catSales[cat] ?? 0) + subtotal;
+        }
+      }
 
-      final List<Map<String, dynamic>> salesByCategory =
-      catSales.entries
+      final salesByCategory = catSales.entries
           .map((e) => {'name': e.key, 'total': e.value})
           .toList()
-        ..sort((a, b) =>
-            (b['total'] as double)
-                .compareTo(a['total'] as double));
+        ..sort((a, b) => (b['total'] as double)
+            .compareTo(a['total'] as double));
 
       setState(() {
         _totalCustomers = customers.count ?? 0;
         _totalSuppliers = suppliers.count ?? 0;
-        _todaySales = (todaySalesData as List).fold(
-            0, (s, r) => s + (r['total_amount'] ?? 0));
-        _totalInvoicesMonth = (monthSalesData as List).length;
-        _monthSales = (monthSalesData as List).fold(
-            0, (s, r) => s + (r['total_amount'] ?? 0));
-        _pendingSales = (monthSalesData as List)
+        _todaySales = todaySalesData.fold(
+            0.0, (s, r) => s + (r['total_amount'] ?? 0));
+        _totalInvoicesMonth = monthSalesData.length;
+        _monthSales = monthSalesData.fold(
+            0.0, (s, r) => s + (r['total_amount'] ?? 0));
+        _pendingSales = monthSalesData
             .where((s) => s['status'] == 'unpaid')
             .length;
         _pendingPurchases = pendingPurchases.count ?? 0;
@@ -187,13 +169,10 @@ class _HomeState extends State<Home> {
       items: <PopupMenuEntry<String>>[
         PopupMenuItem<String>(
           enabled: false,
-          child: Text(
-            widget.username,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
+          child: Text(widget.username,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black)),
         ),
         const PopupMenuDivider(),
         const PopupMenuItem<String>(
@@ -219,7 +198,6 @@ class _HomeState extends State<Home> {
     });
   }
 
-  // ---- STAT CARD ----
   Widget _statCard({
     required String title,
     required String value,
@@ -232,7 +210,7 @@ class _HomeState extends State<Home> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withOpacity(0.25)),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.08),
@@ -250,7 +228,7 @@ class _HomeState extends State<Home> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -258,10 +236,9 @@ class _HomeState extends State<Home> {
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color),
               ),
             ],
           ),
@@ -274,24 +251,24 @@ class _HomeState extends State<Home> {
           if (subtitle != null)
             Text(subtitle,
                 style: const TextStyle(
-                    fontSize: 11, color: Colors.grey)),
+                    fontSize: 10, color: Colors.grey)),
         ],
       ),
     );
   }
 
-  // ---- SECTION HEADER ----
-  Widget _sectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.green, size: 18),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.bold),
-        ),
-      ],
+  Widget _sectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.green, size: 18),
+          const SizedBox(width: 8),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 
@@ -306,15 +283,10 @@ class _HomeState extends State<Home> {
           icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () => _scaffoldKey.currentState!.openDrawer(),
         ),
-        title: const Text(
-          'Dashboard',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Dashboard',
+            style: TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
-          // Refresh
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _fetchDashboardData,
@@ -328,9 +300,8 @@ class _HomeState extends State<Home> {
               child: Text(
                 widget.username[0].toUpperCase(),
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -338,18 +309,14 @@ class _HomeState extends State<Home> {
           TextButton.icon(
             onPressed: _logout,
             icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text(
-              'Logout',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            label: const Text('Logout',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold)),
             style: TextButton.styleFrom(
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+                  borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 5),
@@ -369,10 +336,8 @@ class _HomeState extends State<Home> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ---- TODAY SALES + MONTH SALES ----
-              _sectionHeader(
-                  "Today's Overview", Icons.today),
-              const SizedBox(height: 10),
+              // ---- TODAY ----
+              _sectionTitle("Today's Overview", Icons.today),
               Row(
                 children: [
                   Expanded(
@@ -396,9 +361,11 @@ class _HomeState extends State<Home> {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // ---- MONTH STATS ----
+              // ---- MONTH ----
+              _sectionTitle(
+                  'Monthly Overview', Icons.calendar_month),
               Row(
                 children: [
                   Expanded(
@@ -406,9 +373,10 @@ class _HomeState extends State<Home> {
                       title: 'Month Sales',
                       value:
                       'KES ${_monthSales.toStringAsFixed(0)}',
-                      icon: Icons.calendar_month,
+                      icon: Icons.trending_up,
                       color: Colors.blue,
-                      subtitle: '$_totalInvoicesMonth invoices',
+                      subtitle:
+                      '$_totalInvoicesMonth invoices',
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -423,12 +391,11 @@ class _HomeState extends State<Home> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               // ---- CUSTOMERS + SUPPLIERS ----
-              _sectionHeader(
+              _sectionTitle(
                   'Business Overview', Icons.business),
-              const SizedBox(height: 10),
               Row(
                 children: [
                   Expanded(
@@ -453,10 +420,9 @@ class _HomeState extends State<Home> {
               const SizedBox(height: 20),
 
               // ---- PIE CHART ----
-              _sectionHeader(
+              _sectionTitle(
                   'Sales by Category (This Month)',
                   Icons.pie_chart),
-              const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -472,7 +438,7 @@ class _HomeState extends State<Home> {
                 ),
                 child: _salesByCategory.isEmpty
                     ? const SizedBox(
-                  height: 120,
+                  height: 100,
                   child: Center(
                     child: Text(
                       'No sales data for this month',
@@ -489,33 +455,30 @@ class _HomeState extends State<Home> {
                         PieChartData(
                           sections: List.generate(
                             _salesByCategory.length,
-                                (index) {
+                                (i) {
                               final item =
-                              _salesByCategory[
-                              index];
-                              final total =
+                              _salesByCategory[i];
+                              final totalAll =
                               _salesByCategory.fold(
                                   0.0,
                                       (s, e) =>
                                   s +
                                       (e['total']
                                       as double));
-                              final pct =
-                              ((item['total']
+                              final pct = totalAll > 0
+                                  ? ((item['total']
                               as double) /
-                                  total *
+                                  totalAll *
                                   100)
-                                  .toStringAsFixed(
-                                  1);
+                                  .toStringAsFixed(1)
+                                  : '0';
                               return PieChartSectionData(
                                 value: (item['total']
                                 as double)
                                     .toDouble(),
                                 title: '$pct%',
-                                color: _chartColors[
-                                index %
-                                    _chartColors
-                                        .length],
+                                color: _chartColors[i %
+                                    _chartColors.length],
                                 radius: 70,
                                 titleStyle:
                                 const TextStyle(
@@ -528,11 +491,11 @@ class _HomeState extends State<Home> {
                             },
                           ),
                           sectionsSpace: 2,
-                          centerSpaceRadius: 30,
+                          centerSpaceRadius: 28,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
 
                     // Legend
                     Wrap(
@@ -540,25 +503,23 @@ class _HomeState extends State<Home> {
                       runSpacing: 8,
                       children: List.generate(
                         _salesByCategory.length,
-                            (index) {
+                            (i) {
                           final item =
-                          _salesByCategory[index];
+                          _salesByCategory[i];
                           return Row(
                             mainAxisSize:
                             MainAxisSize.min,
                             children: [
                               Container(
-                                width: 12,
-                                height: 12,
-                                decoration:
-                                BoxDecoration(
-                                  color: _chartColors[
-                                  index %
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: _chartColors[i %
                                       _chartColors
                                           .length],
                                   borderRadius:
                                   BorderRadius
-                                      .circular(3),
+                                      .circular(2),
                                 ),
                               ),
                               const SizedBox(width: 4),
