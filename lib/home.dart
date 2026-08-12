@@ -17,3 +17,16 @@ class _HomeState extends State<Home> {
   final GlobalKey<ScaffoldState> _scaffoldKey =
   GlobalKey<ScaffoldState>();
   final supabase = Supabase.instance.client;
+
+  // Stats
+  int _totalCustomers = 0;
+  int _totalSuppliers = 0;
+  double _todaySales = 0;
+  double _monthSales = 0;
+  int _pendingSales = 0;
+  int _pendingPurchases = 0;
+  int _totalInvoicesMonth = 0;
+  bool _isLoading = true;
+
+  // Pie chart data — sales by category
+  List<Map<String, dynamic>> _salesByCategory = [];
