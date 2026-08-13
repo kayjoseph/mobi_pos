@@ -75,8 +75,7 @@ class _HomeState extends State<Home> {
 
       // Run all queries in parallel
       final results = await Future.wait([
-        supabase.from('customers').select('id',
-            const FetchOptions(count: CountOption.exact)),
+        supabase.from('customers').select('id').count(CountOption.exact),
         supabase.from('suppliers').select('id',
             const FetchOptions(count: CountOption.exact)),
         supabase
