@@ -74,27 +74,100 @@ class _HomeState extends State<Home> {
       DateTime(now.year, now.month, 1).toIso8601String();
 
       // Run all queries in parallel
-      final results = await Future.wait([
-        supabase.from('customers').select('id').count(CountOption.exact),
-        supabase.from('suppliers').select('id').count(CountOption.exact),
-        supabase
-            .from('sales')
-            .select('total_amount')
-            .gte('created_at', todayStart)
-            .lte('created_at', todayEnd),
-        supabase
-            .from('sales')
-            .select('total_amount, status')
-            .gte('created_at', monthStart),
-        supabase.from('purchases').select('id').eq('status', 'unpaid').count(CountOption.exact),
-        supabase
-            .from('sales')
-            .select('items')
-            .gte('created_at', monthStart),
-        supabase
-            .from('products')
-            .select('name, categories(name)'),
-      ]);
+      Future<void> _fetchDashboardData() async {
+        setState(() => _isLoading = true);
+        try {
+          final now = DateTime.now();
+          final todayStart =
+          DateTime(now.year, now.month, now.day).toIso8601String();
+          final todayEnd =
+          DateTime(now.year, now.month, now.day, 23, 59, 59)
+              .toIso8601String();
+          final monthStart =
+          DateTime(now.year, now.month, 1).toIso8601String();
+
+          // Count queries — run separately
+          final customersRes = await supabase
+              .from('customers')
+              .select()
+              .count(CountOption.exact);
+
+          final suppliersRes = await supabase
+              .from('suppliers')
+              .select()
+              .count(CountOption.exact);
+
+          final pendingPurchasesRes = await supabase
+              .from('purchases')
+              .select()
+              .eq('status', 'unpaid')
+              .count(CountOption.exact);
+
+          // Data queries
+          final todaySalesData = await supabase
+              .from('sales')
+              .select('total_amount')
+              .gte('created_at', todayStart)
+              .lte('created_at', todayEnd);
+
+          final monthSalesData = await supabase
+              .from('sales')
+              .select('total_amount, status')
+              .gte('created_at', monthStart);
+
+          final allSales = await supabase
+              .from('sales')
+              .select('items')
+              .gte('created_at', monthStart);
+
+          final productsData = await supabase
+              .from('products')
+              .select('name, categories(name)');
+
+          // Build product → category map
+          final Map<String, String> productCategoryMap = {};
+          for (final p in productsData) {
+            productCategoryMap[p['name']] =
+                p['categories']?['name'] ?? 'Other';
+          }
+
+          // Aggregate sales by category
+          final Map<String, double> catSales = {};
+          for (final sale in allSales) {
+            final items = sale['items'] as List<dynamic>;
+            for (final item in items) {
+              final productName = item['name'].toString();
+              final subtotal = (item['subtotal'] ?? 0).toDouble();
+              final cat = productCategoryMap[productName] ?? 'Other';
+              catSales[cat] = (catSales[cat] ?? 0) + subtotal;
+            }
+          }
+
+          final salesByCategory = catSales.entries
+              .map((e) => {'name': e.key, 'total': e.value})
+              .toList()
+            ..sort((a, b) => (b['total'] as double)
+                .compareTo(a['total'] as double));
+
+          setState(() {
+            _totalCustomers = customersRes.count;
+            _totalSuppliers = suppliersRes.count;
+            _todaySales = todaySalesData.fold(
+                0.0, (s, r) => s + (r['total_amount'] ?? 0));
+            _totalInvoicesMonth = monthSalesData.length;
+            _monthSales = monthSalesData.fold(
+                0.0, (s, r) => s + (r['total_amount'] ?? 0));
+            _pendingSales = monthSalesData
+                .where((s) => s['status'] == 'unpaid')
+                .length;
+            _pendingPurchases = pendingPurchasesRes.count;
+            _salesByCategory = salesByCategory;
+            _isLoading = false;
+          });
+        } catch (e) {
+          setState(() => _isLoading = false);
+        }
+      }
 
       final customers = results[0] as PostgrestResponse;
       final suppliers = results[1] as PostgrestResponse;
