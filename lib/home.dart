@@ -87,7 +87,6 @@ class _HomeState extends State<Home> {
             .select('total_amount, status')
             .gte('created_at', monthStart),
         supabase.from('purchases').select('id').eq('status', 'unpaid').count(CountOption.exact),
-            .eq('status', 'unpaid'),
         supabase
             .from('sales')
             .select('items')
